@@ -126,6 +126,70 @@ class Controller():
         #########################
         ## generate waypoints for planning
 
+        GATE_POSITIONS = ( # True / False determines if gate is parallel to y-axis or not
+            (True,0.5, -2.5)
+            (False,2.0, -1.5)
+            (True,0.0, 0.2)
+            (False,-0.5, 1.5)
+        )
+
+        OBSTACLE_POSITIONS = (
+            (1.5,-2.5)
+            (0.5,-1.0)
+            (1.5,0.0)
+            (-1.0, 0.0)
+        )
+
+        GATE_WIDTH = 0.4
+        GATE_THICKNESS = 0.05
+        OBSTACLE_RADIUS = 0.06
+        UNCERTAINTY_RADIUS = 0.2
+        AVOIDANCE_SAFETY_FACTOR = 2.0
+        RACE_HEIGHT = 1.0
+
+        KEEP_OUT_BOXES = []
+
+        for i,v in enumerate(OBSTACLE_POSITIONS):
+            KEEP_OUT_BOXES.append((
+                v[0] - (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # x lower limit
+                v[0] + (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # x upper limit
+                v[1] - (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y lower limit
+                v[1] + (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y upper limit
+            ))
+
+        for i,v in enumerate(GATE_POSITIONS):
+            if v[0]:
+                # gate is parallel to y-axis
+                KEEP_OUT_BOXES.append((
+                    v[1]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR, # x lower limit
+                    v[1]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR, # x upper limit
+                    v[2] - GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y lower limit
+                    v[2] - GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y upper limit
+                ))
+                KEEP_OUT_BOXES.append((
+                    v[1]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                    v[1]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                    v[2] + GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                    v[2] + GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                ))
+
+            else:
+                # gate is parallel to x-axis
+                KEEP_OUT_BOXES.append((
+                    v[1] - GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                    v[1] - GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                    v[2]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                    v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                ))
+                KEEP_OUT_BOXES.append((
+                    v[1] + GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                    v[1] + GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
+                    v[2]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                    v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
+                ))
+
+
+
         # Call a function in module `example_custom_utils`.
         ecu.exampleFunction()
 
