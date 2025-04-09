@@ -43,7 +43,7 @@ except ImportError:
 # Optionally, create and import modules you wrote.
 # Please refrain from importing large or unstable 3rd party packages.
 try:
-    import example_custom_utils as ecu
+    import velocity_rrt as vrrt
 except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
@@ -127,17 +127,17 @@ class Controller():
         ## generate waypoints for planning
 
         GATE_POSITIONS = ( # True / False determines if gate is parallel to y-axis or not
-            (True,0.5, -2.5)
-            (False,2.0, -1.5)
-            (True,0.0, 0.2)
-            (False,-0.5, 1.5)
+            (True,0.5, -2.5),
+            (False,2.0, -1.5),
+            (True,0.0, 0.2),
+            (False,-0.5, 1.5),
         )
 
         OBSTACLE_POSITIONS = (
-            (1.5,-2.5)
-            (0.5,-1.0)
-            (1.5,0.0)
-            (-1.0, 0.0)
+            (1.5,-2.5),
+            (0.5,-1.0),
+            (1.5,0.0),
+            (-1.0, 0.0),
         )
 
         GATE_WIDTH = 0.4
@@ -188,10 +188,7 @@ class Controller():
                     v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
                 ))
 
-
-
-        # Call a function in module `example_custom_utils`.
-        ecu.exampleFunction()
+        GATE_ORDER = (1,2,3,4)
 
         # initial waypoint
         if use_firmware:
@@ -199,14 +196,9 @@ class Controller():
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        # Example code: hardcode waypoints 
-        waypoints.append((-0.5, -3.0, 2.0))
-        waypoints.append((-0.5, -2.0, 2.0))
-        waypoints.append((-0.5, -1.0, 2.0))
-        waypoints.append((-0.5,  0.0, 2.0))
-        waypoints.append((-0.5,  1.0, 2.0))
-        waypoints.append((-0.5,  2.0, 2.0))
-        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])
+        # RRT to each gate in sequence
+        for i in GATE_ORDER:
+            
 
         # Polynomial fit.
         self.waypoints = np.array(waypoints)
