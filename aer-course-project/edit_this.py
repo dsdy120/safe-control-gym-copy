@@ -159,7 +159,7 @@ class Controller():
             # So: real_x = grid_x*res - 3.5, reasl_y = grid_y*res - 3.5
             real_x = point[0]*res - 3.5
             real_y = point[1]*res - 3.5
-            real_z = point[2]  # z-coordinate is already in the right scale
+            real_z = 1.0  # z-coordinate is already in the right scale
             real_path.append([real_x, real_y, real_z])
         
         # Store waypoints for trajectory generation
@@ -169,7 +169,7 @@ class Controller():
         # self.waypoints = waypoints
 
         # Polynomial fit.
-        deg = 12
+        deg = 60
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
