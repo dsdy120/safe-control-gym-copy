@@ -43,7 +43,7 @@ except ImportError:
 # Optionally, create and import modules you wrote.
 # Please refrain from importing large or unstable 3rd party packages.
 try:
-    import velocity_rrt as vrrt
+    import example_custom_utils as ecu
 except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
@@ -126,83 +126,50 @@ class Controller():
         #########################
         ## generate waypoints for planning
 
-        GATE_POSITIONS = ( # True / False determines if gate is parallel to y-axis or not
-            (True,0.5, -2.5),
-            (False,2.0, -1.5),
-            (True,0.0, 0.2),
-            (False,-0.5, 1.5),
-        )
-
-        OBSTACLE_POSITIONS = (
-            (1.5,-2.5),
-            (0.5,-1.0),
-            (1.5,0.0),
-            (-1.0, 0.0),
-        )
-
-        GATE_WIDTH = 0.4
-        GATE_THICKNESS = 0.05
-        OBSTACLE_RADIUS = 0.06
-        UNCERTAINTY_RADIUS = 0.2
-        AVOIDANCE_SAFETY_FACTOR = 2.0
-        RACE_HEIGHT = 1.0
-
-        KEEP_OUT_BOXES = []
-
-        for i,v in enumerate(OBSTACLE_POSITIONS):
-            KEEP_OUT_BOXES.append((
-                v[0] - (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # x lower limit
-                v[0] + (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # x upper limit
-                v[1] - (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y lower limit
-                v[1] + (OBSTACLE_RADIUS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y upper limit
-            ))
-
-        for i,v in enumerate(GATE_POSITIONS):
-            if v[0]:
-                # gate is parallel to y-axis
-                KEEP_OUT_BOXES.append((
-                    v[1]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR, # x lower limit
-                    v[1]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR, # x upper limit
-                    v[2] - GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y lower limit
-                    v[2] - GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR, # y upper limit
-                ))
-                KEEP_OUT_BOXES.append((
-                    v[1]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                    v[1]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                    v[2] + GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                    v[2] + GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                ))
-
-            else:
-                # gate is parallel to x-axis
-                KEEP_OUT_BOXES.append((
-                    v[1] - GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                    v[1] - GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                    v[2]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                    v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                ))
-                KEEP_OUT_BOXES.append((
-                    v[1] + GATE_WIDTH - (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                    v[1] + GATE_WIDTH + (GATE_THICKNESS + UNCERTAINTY_RADIUS)*AVOIDANCE_SAFETY_FACTOR,
-                    v[2]              - UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                    v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
-                ))
-
-        GATE_ORDER = (1,2,3,4)
+        # Call a function in module `example_custom_utils`.
+        #ecu.exampleFunction()
+        res = 0.1
+        M = ecu.map_generation(res)
+        gate_order = np.array([1, 2, 3, 4])
+        #path1, path2, path3, path4, path5 = path_planning(res, gate_order, M).run_Astar()
+        #plot_map(M, res, path1, path2, path3, path4, path5)
+        path = ecu.path_planning(res, gate_order, M).run_Astar()
+        ecu.plot_map(M, res, path)
+        print(path)
 
         # initial waypoint
-        if use_firmware:
+        """if use_firmware:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], initial_info["gate_dimensions"]["tall"]["height"])]  # Height is hardcoded scenario knowledge.
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        # RRT to each gate in sequence
-        for i in GATE_ORDER:
-            
+        # Example code: hardcode waypoints 
+        waypoints.append((-0.5, -3.0, 2.0))
+        waypoints.append((-0.5, -2.0, 2.0))
+        waypoints.append((-0.5, -1.0, 2.0))
+        waypoints.append((-0.5,  0.0, 2.0))
+        waypoints.append((-0.5,  1.0, 2.0))
+        waypoints.append((-0.5,  2.0, 2.0))
+        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])"""
+
+        real_path = []
+        for point in path:
+            # Convert from grid coordinates back to real-world (meters)
+            # The conversion is: grid_x = (real_x + 3.5)/res, grid_y = (real_y + 3.5)/res
+            # So: real_x = grid_x*res - 3.5, reasl_y = grid_y*res - 3.5
+            real_x = point[0]*res - 3.5
+            real_y = point[1]*res - 3.5
+            real_z = point[2]  # z-coordinate is already in the right scale
+            real_path.append([real_x, real_y, real_z])
+        
+        # Store waypoints for trajectory generation
+        self.waypoints = np.array(real_path)
+
+        # Store waypoints for trajectory generation
+        # self.waypoints = waypoints
 
         # Polynomial fit.
-        self.waypoints = np.array(waypoints)
-        deg = 6
+        deg = 12
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
