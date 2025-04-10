@@ -15,6 +15,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+"""Example utility module.
+
+Please use a file like this one to add extra functions.
+
+"""
+
+def exampleFunction():
+    """Example of user-defined function.
+
+    """
+    x = -1
+    return x
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import interpolate
+
 def map_generation(res):
     NN = round(7/res)
     M = np.zeros((NN, NN), dtype=int)
@@ -24,17 +41,39 @@ def map_generation(res):
     for _, coord in enumerate(obs):
         M[round((coord[0]-0.26+3.5)/res):round((coord[0]+0.26+3.5)/res), round((coord[1]-0.26+3.5)/res):round((coord[1]+0.26+3.5)/res)] = 1
     
-    gate_vertical = np.array([[0.5, -2.275], [0.5, -2.725], [0,0.425], [0,-0.025]])
-    gate_horizontal = np.array([[2.225,-1.5], [1.775,-1.5], [-0.725,1.5], [-0.275,1.5]])
+    #gate_vertical = np.array([[0.5, -2.275], [0.5, -2.725], [0,0.425], [0,-0.025]])
+    #gate_horizontal = np.array([[2.225,-1.5], [1.775,-1.5], [-0.725,1.5], [-0.275,1.5]])
+    t = 0.3
+    opening = 0.15
+    offset = (opening/2) + (t/2)
+    length = 0.3
+
+    #gate_vertical = np.array([[0.5, -2.5-offset], [0.5, -2.5+offset], [0,0.2-offset], [0,0.2+offset]])    
+    #gate_horizontal = np.array([[2.0-offset,-1.5], [2.0+offset,-1.5], [-0.5-offset,1.5], [-0.5+offset,1.5]])
+    gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
+    gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
+
     for _, coord in enumerate(gate_vertical):
-        y = round((coord[1]-0.025+3.5)/res)
-        M[round((coord[0]-0.06+3.5)/res):round((coord[0]+0.06+3.5)/res), y:(y+1)] = 1
+        #y = round((coord[1]-0.025+3.5)/res)
+        #M[round((coord[0]-0.06+3.5)/res):round((coord[0]+0.06+3.5)/res), y:(y+1)] = 1
+        #M[round((coord[0]-(length/2)+3.5)/res):round((coord[0]+(length/2)+3.5)/res), round((coord[1]-(t/2)+3.5)/res):round((coord[1]+(t/2)+3.5)/res)] = 1
+        x = round((coord[0]+3.5)/res)
+        y = round((coord[1]+3.5)/res)
+        M[(x-1):(x+2), (y-3):y] = 1
+        M[(x-1):(x+2), (y+1):(y+4)] = 1
 
     for _, coord in enumerate(gate_horizontal):
-        x = round((coord[0]-0.025+3.5)/res)
-        M[x:(x+1), round((coord[1]-0.06+3.5)/res):round((coord[1]+0.06+3.5)/res)] = 1
+        #x = round((coord[0]-0.025+3.5)/res)
+        #M[x:(x+1), round((coord[1]-0.06+3.5)/res):round((coord[1]+0.06+3.5)/res)] = 1
+        #M[round((coord[0]-(t/2)+3.5)/res):round((coord[0]+(t/2)+3.5)/res), round((coord[1]-(length/2)+3.5)/res):round((coord[1]+(length/2)+3.5)/res)] = 1
+        x = round((coord[0]+3.5)/res)
+        y = round((coord[1]+3.5)/res)
+        M[(x-3):x, (y-1):(y+2)] = 1
+        M[(x+1):(x+4), (y-1):(y+2)] = 1
+        
 
     return M
+
 
 def update_map (M, path, gate_num, gate_coord, res):
     if gate_num == 1 or gate_num == 3:
@@ -259,3 +298,4 @@ class path_planning():
         #waypoints = np.vstack([x_smooth, y_smooth]).T
 
         return waypoints
+
