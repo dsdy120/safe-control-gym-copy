@@ -169,7 +169,7 @@ class Controller():
         # self.waypoints = waypoints
 
         # Polynomial fit.
-        deg = 60
+        deg = 5
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))

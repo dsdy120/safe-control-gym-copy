@@ -43,15 +43,17 @@ def map_generation(res):
     
     #gate_vertical = np.array([[0.5, -2.275], [0.5, -2.725], [0,0.425], [0,-0.025]])
     #gate_horizontal = np.array([[2.225,-1.5], [1.775,-1.5], [-0.725,1.5], [-0.275,1.5]])
-    t = 0.3
-    opening = 0.15
-    offset = (opening/2) + (t/2)
-    length = 0.3
+    #t = 0.3
+    #opening = 0.15
+    #offset = (opening/2) + (t/2)
+    #length = 0.3
 
     #gate_vertical = np.array([[0.5, -2.5-offset], [0.5, -2.5+offset], [0,0.2-offset], [0,0.2+offset]])    
     #gate_horizontal = np.array([[2.0-offset,-1.5], [2.0+offset,-1.5], [-0.5-offset,1.5], [-0.5+offset,1.5]])
     gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
-    gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
+    gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]])
+    num1 = 5
+     
 
     for _, coord in enumerate(gate_vertical):
         #y = round((coord[1]-0.025+3.5)/res)
