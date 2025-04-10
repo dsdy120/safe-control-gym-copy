@@ -4,19 +4,22 @@ RRT algorithm
 import numpy as np
 import matplotlib.pyplot as plt
 
-TIMESTEP_SEC = 1
-TOLERANCE_COST = 1
+TIMESTEP_SEC = 0.1
 
 DIST_COEFF = 1
-DIST_EXP = 1
+DIST_EXP = 10
 VEL_COEFF = 1
 VEL_EXP = 1
+
+TOLERANCE_COST = 0
+
+MAX_ITERATIONS = 50000000
 
 class RootNode:
     def __init__(self,x:np.ndarray,x_f:np.ndarray,v_f:np.ndarray):
         self._x = x
         self._parent = None
-        self._cost = np.linalg.norm(x - x_f) * np.dot(x-x_f, v_f)
+        self._cost = np.linalg.norm(x - x_f) + np.linalg.norm(v_f)
         self._vel = np.zeros(3)
 
     def get_future_x(self):
@@ -76,8 +79,7 @@ class TreeNode:
         return path[::-1]
 
 
-def rrt(x_0,x_1,x_f,v_f,obstacles,max_acc,max_iter=10000000,
-        goal_sample_rate=0.05, max_distance=1.0):
+def rrt(x_0,x_1,x_f,v_f,obstacles,max_acc):
     """
     RRT algorithm for path planning.
     """
@@ -88,17 +90,20 @@ def rrt(x_0,x_1,x_f,v_f,obstacles,max_acc,max_iter=10000000,
     root_cost = root.get_cost()
     min_cost = root_cost
 
-    for i in range(max_iter):
+    for i in range(MAX_ITERATIONS):
         min_cost = min(min_cost, tree[-1].get_cost())
+        j = 0
         try:
             # if tree[-1-j].get_cost() > 1.0005 * min_cost:
             #     continue
             # Sample a random acceleration vector
-            for j in range(max(100,int(min_cost / root_cost * len(tree)))):
-                a_rand = np.array([max_acc]*3)
+            # for j in range(max(1000,int(min_cost / (root_cost) * len(tree)))):
+            for j in range(10000):
+                a_rand = np.array([max_acc,max_acc])
                 while np.linalg.norm(a_rand) > max_acc:
-                    a_rand = np.random.uniform(-max_acc, max_acc, 3)
-
+                    a_rand = np.random.uniform(-max_acc, max_acc, 2)
+                
+                a_rand = np.array([a_rand[0], a_rand[1], 0])
 
                 # rnd_index = min(len(tree)-1,int(np.e**(np.random.random()*np.log(len(tree)))))
                 # print(rnd_index)
@@ -118,6 +123,8 @@ def rrt(x_0,x_1,x_f,v_f,obstacles,max_acc,max_iter=10000000,
         except KeyboardInterrupt:
             print("Interrupted")
             return tree[-1].get_x_path(), tree[-1].get_v_path()
+        
+    return tree[-1].get_x_path(), tree[-1].get_v_path()
 
 
 if __name__ == "__main__":
