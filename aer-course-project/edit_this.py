@@ -131,6 +131,9 @@ class Controller():
         res = 0.1
         M = ecu.map_generation(res)
         gate_order = np.array([1, 2, 3, 4])
+        repeated_gates = np.random.choice(gate_order, size=2)
+        gate_order = np.concatenate((gate_order, repeated_gates))
+        np.random.shuffle(gate_order)
         #path1, path2, path3, path4, path5 = path_planning(res, gate_order, M).run_Astar()
         #plot_map(M, res, path1, path2, path3, path4, path5)
         path = ecu.path_planning(res, gate_order, M).run_Astar()
@@ -171,9 +174,13 @@ class Controller():
         # Polynomial fit.
         deg = 60
         t = np.arange(self.waypoints.shape[0])
+        # fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
+        # fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
+        # fz = np.poly1d(np.polyfit(t, self.waypoints[:,2], deg))
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
         fz = np.poly1d(np.polyfit(t, self.waypoints[:,2], deg))
+
         duration = 15
         t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ))
         self.ref_x = fx(t_scaled)

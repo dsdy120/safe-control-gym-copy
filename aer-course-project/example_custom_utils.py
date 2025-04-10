@@ -91,6 +91,8 @@ class path_planning():
         self.gate_2 = self.gate_coord[gate_order[1] - 1]
         self.gate_3 = self.gate_coord[gate_order[2] - 1]
         self.gate_4 = self.gate_coord[gate_order[3] - 1]
+        self.gate_5 = self.gate_coord[gate_order[4] - 1]
+        self.gate_6 = self.gate_coord[gate_order[5] - 1]
 
         self.start = np.array([int((-1+3.5)/res), int((-3+3.5)/res)])
         self.end = np.array([int((-0.5+3.5)/res), int((2+3.5)/res)])
@@ -103,13 +105,15 @@ class path_planning():
             (self.gate_1, self.gate_2, self.gate_order[1], self.gate_2),
             (self.gate_2, self.gate_3, self.gate_order[2], self.gate_3),
             (self.gate_3, self.gate_4, self.gate_order[3], self.gate_4),
-            (self.gate_4, self.end, None, None)
+            (self.gate_4, self.gate_5, self.gate_order[4], self.gate_5),
+            (self.gate_5, self.gate_6, self.gate_order[5], self.gate_6),
+            (self.gate_6, self.end, None, None)
         ]):
             path = self.A_star(start, end, self.M)
             if path is None or len(path) == 0:
                 print(f"Path segment {i+1} failed. Aborting.")
                 return None
-            if i < 4:  # Only update map for gate segments
+            if i < 6:  # Only update map for gate segments
                 self.M = update_map(self.M, path, gate_num, gate_coord, self.res)
 
             #path = self.downsample_path(path)
