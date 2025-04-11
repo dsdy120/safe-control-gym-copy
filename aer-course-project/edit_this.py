@@ -43,10 +43,10 @@ except ImportError:
 # Optionally, create and import modules you wrote.
 # Please refrain from importing large or unstable 3rd party packages.
 try:
-    import example_custom_utils as ecu
+    import turn_limited_rrt as tlrrt
 except ImportError:
     # PyTest import.
-    from . import example_custom_utils as ecu
+    from . import turn_limited_rrt as tlrrt
 
 #########################
 # REPLACE THIS (END) ####
@@ -189,9 +189,6 @@ class Controller():
                 ))
 
 
-
-        # Call a function in module `example_custom_utils`.
-        ecu.exampleFunction()
 
         # initial waypoint
         if use_firmware:
