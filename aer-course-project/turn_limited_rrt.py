@@ -11,7 +11,7 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 import time
 
-TIMESTEP_SEC = 1
+TIMESTEP_SEC = 1.1
 MAX_ACCELERATION = 1
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
@@ -45,9 +45,22 @@ class TreeNode:
         Add a parent node to the current node. Automatically adds self as child for parent.
         '''
         if self._parent is not None:
-            raise ValueError(f"Node already has a parent: {self.get_position()}")
+            self._parent.remove_child(self)
         self._parent = parent
         parent.add_child(self)
+    def remove_parent(self):
+        '''
+        Remove the parent node from the current node.
+        '''
+        if self._parent is not None:
+            self._parent.remove_child(self)
+        self._parent = None
+    def remove_child(self, child):
+        '''
+        Remove a child node from the current node.
+        '''
+        if child in self._children:
+            self._children.remove(child)
     def get_children(self):
         '''
         Get the children of the current node.
@@ -220,7 +233,6 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
                     while len(newly_adopted):
                         newly_adopted_node = newly_adopted.pop(0)
-                        tree.append(newly_adopted_node)
                         print(f"Adopted node {newly_adopted_node.get_position()} from orphans")
                         # Check if any orphans are eligible for adoption
                         for k,orphan in enumerate(orphans):
@@ -245,19 +257,20 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
                         # Check if next gate was just adopted
                         if newly_adopted_node.get_position() == tuple(next_gate):
-                            # Next gate was just adopted, remove it from the orphans list
+                            
                             flag_gate_loaded = False
                             
                             path = newly_adopted_node.get_path()
                             old_tree.extend(tree)
-                            for node in tree:
-                                node.remove_parent()
-                            orphans.extend(tree)
+                            # for node in tree:
+                            #     node.remove_parent()
+                            # orphans.extend(tree)
                             tree = [newly_adopted_node]
                             newly_adopted = []
                             min_index = -1
                             min_deviation = np.inf
 
+                        tree.append(newly_adopted_node)
 
                 print(f"Iteration {i}: Sampled ({xk: 05.1f},{yk: 05.1f}) from ({x_min},{y_min}) to ({x_max},{y_max}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, next gate is {next_gate}")
         except KeyboardInterrupt:
