@@ -11,11 +11,11 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 import time
 
-TIMESTEP_SEC = 1.1
-MAX_ACCELERATION = 1
+TIMESTEP_SEC = 0.9
+MAX_ACCELERATION = 1.0
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
-AVG_TURN_RADIUS = 1
+AVG_TURN_RADIUS = 0.6
 AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
 STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
 
@@ -90,11 +90,10 @@ class TreeNode:
         Get the forward position of the current node with respect to the parent.
         '''
         if self._parent is None:
-            return 0, 0
-        else:
-            rel_x, rel_y = self.get_rel_position()
-            norm = np.sqrt(rel_x**2 + rel_y**2)
-            return self._x + rel_x/norm*STEP_LENGTH, self._y + rel_y/norm*STEP_LENGTH
+            return self._x, self._y
+        rel_x, rel_y = self.get_rel_position()
+        norm = np.sqrt(rel_x**2 + rel_y**2)
+        return self._x + rel_x/norm*STEP_LENGTH, self._y + rel_y/norm*STEP_LENGTH
         
     def get_distance(self, xk, yk):
         '''
@@ -131,14 +130,14 @@ class KeepOutBox:
         '''
         Check if a line segment from (xi,yi) to (xf,yf) intersects with the obstacle.
         '''
-        # Check if the line segment intersects with the rectangle defined by the obstacle
-        gradient = (yf-yi)/(xf-xi) #TODO: check for division by zero
-
-        collision_left = self.y0 <= gradient*(self.x0-xi) + yi <= self.y1
-        collision_right = self.y0 <= gradient*(self.x1-xi) + yi <= self.y1
-        collision_top = self.x0 <= (self.y0 - yi) / gradient + xi <= self.x1
-        collision_bottom = self.x0 <= (self.y1 - yi) / gradient + xi <= self.x1
-        return collision_left or collision_right or collision_top or collision_bottom
+        # Generate line segment points
+        x = np.linspace(xi, xf, 1000)
+        y = np.linspace(yi, yf, 1000)
+        # Check if any point in the line segment is inside the obstacle
+        for i in range(len(x)):
+            if self.x0 <= x[i] <= self.x1 and self.y0 <= y[i] <= self.y1:
+                return True
+        return False
     
     def detect_contained(self, xi, yi):
         '''
@@ -185,8 +184,8 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
             # all_nodes = tree + orphans
 
             # Randomly sample ax(node_distances)
-            xk = np.random.uniform(x_min - 3 * AVG_TURN_RADIUS, x_max + 3 * AVG_TURN_RADIUS)
-            yk = np.random.uniform(y_min - 3 * AVG_TURN_RADIUS, y_max + 3 * AVG_TURN_RADIUS)
+            xk = np.random.random() * (x_max - x_min) + x_min
+            yk = np.random.random() * (y_max - y_min) + y_min
             # print(f"Sampled ({xk: 05.1f},{yk: 05.1f})\r", end="")
 
             # Check if the point is inside any keep out boxes
@@ -213,8 +212,8 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                 # Check if the line segment intersects with any keep out boxes
                 collision_list = [
                     box.detect_collision(
-                        tree[min_index].get_fwd_position()[0], 
-                        tree[min_index].get_fwd_position()[1], 
+                        tree[min_index].get_position()[0], 
+                        tree[min_index].get_position()[1], 
                         xk, 
                         yk
                     ) for box in keep_out_boxes]
@@ -233,7 +232,8 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
                     while len(newly_adopted):
                         newly_adopted_node = newly_adopted.pop(0)
-                        print(f"Adopted node {newly_adopted_node.get_position()} from orphans")
+                        tree.append(newly_adopted_node)
+                        # print(f"Adopted node {newly_adopted_node.get_position()} from orphans")
                         # Check if any orphans are eligible for adoption
                         for k,orphan in enumerate(orphans):
                             if newly_adopted_node.get_fwd_deviation(
@@ -270,9 +270,10 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                             min_index = -1
                             min_deviation = np.inf
 
-                        tree.append(newly_adopted_node)
-
-                print(f"Iteration {i}: Sampled ({xk: 05.1f},{yk: 05.1f}) from ({x_min},{y_min}) to ({x_max},{y_max}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, next gate is {next_gate}")
+            else:
+                # Forward deviation is too high, assign to orphans
+                orphans.append(TreeNode(xk,yk))
+            print(f"Iteration {i}: Sampled ({xk: 05.1f},{yk: 05.1f}) from ({x_min},{y_min}) to ({x_max},{y_max}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, next gate is {next_gate}")
         except KeyboardInterrupt:
             print("Stopping RRT algorithm")
             break
@@ -321,9 +322,9 @@ def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
     # Add the path to the plot
     path_x = [node._x for node in path]
     path_y = [node._y for node in path]
-    ax.plot(path_x, path_y, 'r-', linewidth=4, label='Path')
+    ax.plot(path_x, path_y, 'r-', linewidth=3, label='Path')
 
-    ax.legend()
+    ax.legend(loc='right')
     plt.show()
 
 def main():
@@ -334,14 +335,17 @@ def main():
     y_max = 10
 
     # Define the start and goal coordinates
-    start_coords = [0, 0]
-    gate_coords = [[2, 2], [5, 5], [8, 8], [5,5]]*2
+    start_coords = [5,5]
+    gate_coords = [[2, 2], [8, 2], [8, 8], [2, 8]]*2
     gate_coords_copy = gate_coords.copy()
 
     # Define the keep out boxes
     keep_out_boxes = [
         [3, 4, 3, 4],
-        [6, 7, 6, 7]
+        [6, 7, 6, 7],
+        [3, 4, 6, 7],
+        [6, 7, 3, 4],
+        
     ]
 
     # Run the RRT algorithm
