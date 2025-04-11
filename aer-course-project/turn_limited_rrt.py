@@ -11,14 +11,14 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 
 TIMESTEP_SEC = 1.0
-MAX_ACCELERATION = 0.1
+MAX_ACCELERATION = 1.0
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
-AVG_SPEED = 1.0
+AVG_TURN_RADIUS = 1.0
+AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
 STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
-AVG_TURN_RADIUS = AVG_SPEED**2 / MAX_ACCELERATION
 
-print(f"Minimum turning radius is {AVG_TURN_RADIUS} m")
+print(f"Average speed is {AVG_SPEED} m/s")
 
 class TreeNode:
     '''
@@ -106,7 +106,7 @@ class KeepOutBox:
         Check if a line segment from (xi,yi) to (xf,yf) intersects with the obstacle.
         '''
         # Check if the line segment intersects with the rectangle defined by the obstacle
-        gradient = (yf-yi)/(xf-xi)
+        gradient = (yf-yi)/(xf-xi) #TODO: check for division by zero
 
         collision_left = self.y0 <= gradient*(self.x0-xi) + yi <= self.y1
         collision_right = self.y0 <= gradient*(self.x1-xi) + yi <= self.y1
@@ -133,92 +133,96 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
     i = 0
     flag_gate_loaded = False
     while i < 1e8:
-        # Put next gate at head of orphans list
-        if not flag_gate_loaded:
-            try:
-                next_gate = gates.pop(0)
-                flag_gate_loaded = True
-            except IndexError:
-                # No more gates to process
-                break
-        
-        orphans = [TreeNode(next_gate[0], next_gate[1])] + orphans
-
-        # Randomly sample a point in the extent of the tree + 1m around
-        node_positions = [node.get_position() for node in tree]
-        x_positions = [node[0] for node in node_positions]
-        y_positions = [node[1] for node in node_positions]
-        x_min = max(min(x_positions) - 1, x_min)
-        x_max = min(max(x_positions) + 1, x_max)
-        y_min = max(min(y_positions) - 1, y_min)
-        y_max = min(max(y_positions) + 1, y_max)
-        # Sample a random point in the extent of the tree
-        xk = np.random.uniform(x_min, x_max)
-        yk = np.random.uniform(y_min, y_max)
-
-        # Look for lowest forward deviation from all nodes
-        min_deviation = np.inf
-        min_index = -1
-        for j, node in enumerate(tree + orphans):
-            fwd_deviation = node.get_fwd_deviation(xk,yk)
-            if fwd_deviation < min_deviation:
-                min_deviation = fwd_deviation
-                min_index = j
-
-        if min_index == -1:
-            # No nodes in the tree 
-            # Create node in orphans list
-            orphans.append(TreeNode(xk,yk))
-            continue
-
-        # Check if forward deviation is within limits
-        if min_deviation < MAX_DEVIATION:
-            # Check if the line segment intersects with any keep out boxes
-            collision_list = [
-                box.detect_collision(
-                    tree[min_index].get_fwd_position()[0], 
-                    tree[min_index].get_fwd_position()[1], 
-                    xk, 
-                    yk
-                ) for box in keep_out_boxes]
+        try:
+            # Put next gate at head of orphans list
+            if not flag_gate_loaded:
+                try:
+                    next_gate = gates.pop(0)
+                    flag_gate_loaded = True
+                except IndexError:
+                    # No more gates to process
+                    break
             
-            if any(collision_list):
-                # Collision detected, assign to orphans
+            orphans = [TreeNode(next_gate[0], next_gate[1])] + orphans
+
+            # Randomly sample a point in the extent of the tree + 1m around
+            node_positions = [node.get_position() for node in tree]
+            x_positions = [node[0] for node in node_positions]
+            y_positions = [node[1] for node in node_positions]
+            x_min = max(min(x_positions)-1, x_min)
+            x_max = min(max(x_positions)+1, x_max)
+            y_min = max(min(y_positions)-1, y_min)
+            y_max = min(max(y_positions)+1, y_max)
+            xk = np.random.uniform(x_min, x_max)
+            yk = np.random.uniform(y_min, y_max)
+
+            # Look for lowest forward deviation from all nodes
+            min_deviation = np.inf
+            min_index = -1
+            for j, node in enumerate(tree + orphans):
+                fwd_deviation = node.get_fwd_deviation(xk,yk)
+                if fwd_deviation < min_deviation:
+                    min_deviation = fwd_deviation
+                    min_index = j
+
+            if min_index == -1:
+                # No nodes in the tree 
+                # Create node in orphans list
                 orphans.append(TreeNode(xk,yk))
                 continue
 
-            # Create a new node and add it to the tree
-            new_node = TreeNode(xk,yk)
-            new_node.add_parent(tree[min_index])
-            # Check if any orphans are eligible for adoption
-            for k,orphan in enumerate(orphans):
-                if new_node.get_fwd_deviation(
-                    orphan.get_position()[0], 
-                    orphan.get_position()[1]
-                ) < MAX_DEVIATION:
-                    # Check if the line segment intersects with any keep out boxes
-                    collision_list = [
-                        box.detect_collision(
-                            new_node.get_fwd_position()[0], 
-                            new_node.get_fwd_position()[1], 
-                            orphan.get_position()[0], 
-                            orphan.get_position()[1]
-                        ) for box in keep_out_boxes
-                    ]
-                    
-                    if not any(collision_list):
-                        # No collision, adopt the orphan
-                        orphan.add_parent(new_node)
-                        tree.append(orphans.pop(k))
+            # Check if forward deviation is within limits
+            if min_deviation < MAX_DEVIATION:
+                # Check if the line segment intersects with any keep out boxes
+                collision_list = [
+                    box.detect_collision(
+                        tree[min_index].get_fwd_position()[0], 
+                        tree[min_index].get_fwd_position()[1], 
+                        xk, 
+                        yk
+                    ) for box in keep_out_boxes]
+                
+                if any(collision_list):
+                    # Collision detected, assign to orphans
+                    orphans.append(TreeNode(xk,yk))
+                    continue
 
-            # Add the new node to the tree
-            tree.append(new_node)
+                # Create a new node and add it to the tree
+                new_node = TreeNode(xk,yk)
+                new_node.add_parent(tree[min_index])
+                # Check if any orphans are eligible for adoption
+                for k,orphan in enumerate(orphans):
+                    if new_node.get_fwd_deviation(
+                        orphan.get_position()[0], 
+                        orphan.get_position()[1]
+                    ) < MAX_DEVIATION:
+                        # Check if the line segment intersects with any keep out boxes
+                        collision_list = [
+                            box.detect_collision(
+                                new_node.get_fwd_position()[0], 
+                                new_node.get_fwd_position()[1], 
+                                orphan.get_position()[0], 
+                                orphan.get_position()[1]
+                            ) for box in keep_out_boxes
+                        ]
+                        
+                        if not any(collision_list):
+                            # No collision, adopt the orphan
+                            orphan.add_parent(new_node)
+                            tree.append(orphans.pop(k))
 
-        # Check if next gate was just adopted
-        if tuple(next_gate) in [node.get_position() for node in tree]:
-            flag_gate_loaded = False
+                # Add the new node to the tree
+                tree.append(new_node)
 
-        print(f"Iteration {i}: Sampled ({xk:.1f},{yk:.1f}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, {len(gates):1d} gates left")
+            # Check if next gate was just adopted
+            if tuple(next_gate) in [node.get_position() for node in tree]:
+                flag_gate_loaded = False
+
+            print(f"Iteration {i}: Sampled ({xk:.1f},{yk:.1f}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, {len(gates):1d} gates left")
+            i += 1
+        except KeyboardInterrupt:
+            print("Stopping RRT algorithm")
+            break
 
     # Return the tree
     return tree
