@@ -14,7 +14,7 @@ TIMESTEP_SEC = 1.0
 MAX_ACCELERATION = 1.0
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
-AVG_TURN_RADIUS = 1.0
+AVG_TURN_RADIUS = 3.0
 AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
 STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
 
@@ -149,10 +149,10 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
             node_positions = [node.get_position() for node in tree]
             x_positions = [node[0] for node in node_positions]
             y_positions = [node[1] for node in node_positions]
-            x_min = max(min(x_positions)-1, x_min)
-            x_max = min(max(x_positions)+1, x_max)
-            y_min = max(min(y_positions)-1, y_min)
-            y_max = min(max(y_positions)+1, y_max)
+            x_min = max(min(x_positions)-AVG_TURN_RADIUS, x_min)
+            x_max = min(max(x_positions)+AVG_TURN_RADIUS, x_max)
+            y_min = max(min(y_positions)-AVG_TURN_RADIUS, y_min)
+            y_max = min(max(y_positions)+AVG_TURN_RADIUS, y_max)
             xk = np.random.uniform(x_min, x_max)
             yk = np.random.uniform(y_min, y_max)
 
@@ -190,29 +190,36 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                 # Create a new node and add it to the tree
                 new_node = TreeNode(xk,yk)
                 new_node.add_parent(tree[min_index])
-                # Check if any orphans are eligible for adoption
-                for k,orphan in enumerate(orphans):
-                    if new_node.get_fwd_deviation(
-                        orphan.get_position()[0], 
-                        orphan.get_position()[1]
-                    ) < MAX_DEVIATION:
-                        # Check if the line segment intersects with any keep out boxes
-                        collision_list = [
-                            box.detect_collision(
-                                new_node.get_fwd_position()[0], 
-                                new_node.get_fwd_position()[1], 
-                                orphan.get_position()[0], 
-                                orphan.get_position()[1]
-                            ) for box in keep_out_boxes
-                        ]
-                        
-                        if not any(collision_list):
-                            # No collision, adopt the orphan
-                            orphan.add_parent(new_node)
-                            tree.append(orphans.pop(k))
+                
+                newly_adopted = []
+                newly_adopted.append(new_node)
 
-                # Add the new node to the tree
-                tree.append(new_node)
+                while len(newly_adopted):
+                    newly_adopted_node = newly_adopted.pop(0)
+                    tree.append(newly_adopted_node)
+                    # Check if any orphans are eligible for adoption
+                    for k,orphan in enumerate(orphans):
+                        if newly_adopted_node.get_fwd_deviation(
+                            orphan.get_position()[0], 
+                            orphan.get_position()[1]
+                        ) < MAX_DEVIATION:
+                            # Check if the line segment intersects with any keep out boxes
+                            collision_list = [
+                                box.detect_collision(
+                                    newly_adopted_node.get_fwd_position()[0], 
+                                    newly_adopted_node.get_fwd_position()[1], 
+                                    orphan.get_position()[0], 
+                                    orphan.get_position()[1]
+                                ) for box in keep_out_boxes
+                            ]
+                            
+                            if not any(collision_list):
+                                # No collision, adopt the orphan
+                                orphan.add_parent(newly_adopted_node)
+                                newly_adopted.append(orphans.pop(k))
+
+                # Add the newly adopted nodes to the tree
+                tree.extend(newly_adopted)
 
             # Check if next gate was just adopted
             if tuple(next_gate) in [node.get_position() for node in tree]:
