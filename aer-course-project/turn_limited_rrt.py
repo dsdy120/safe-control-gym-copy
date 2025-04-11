@@ -11,11 +11,11 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 import time
 
-TIMESTEP_SEC = 1.0
-MAX_ACCELERATION = 0.707
+TIMESTEP_SEC = 1
+MAX_ACCELERATION = 1
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
-AVG_TURN_RADIUS = 1.0
+AVG_TURN_RADIUS = 1
 AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
 STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
 
@@ -149,6 +149,11 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
     # Create list of orphans
     orphans = []
 
+    # Create path
+    path = []
+
+    old_tree = []
+
     i = 0
     flag_gate_loaded = False
     while i < 1e8:
@@ -164,17 +169,11 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                     # No more gates to process
                     break
             
-            all_nodes = tree + orphans
+            # all_nodes = tree + orphans
 
-            # Randomly sample a point in the extent of all nodes + 1 turning radius around
-            # node_distances = [node.get_distance(start_coords[0],start_coords[1]) for node in all_nodes]
-            # max_distance = max(node_distances)
-            # x_min = max(start_coords[0] - max_distance, x_min)
-            # x_max = min(start_coords[0] + max_distance, x_max)
-            # y_min = max(start_coords[1] - max_distance, y_min)
-            # y_max = min(start_coords[1] + max_distance, y_max)
-            xk = np.random.uniform(x_min - 2*AVG_TURN_RADIUS, x_max + 2*AVG_TURN_RADIUS)
-            yk = np.random.uniform(y_min - 2*AVG_TURN_RADIUS, y_max + 2*AVG_TURN_RADIUS)
+            # Randomly sample ax(node_distances)
+            xk = np.random.uniform(x_min - 3 * AVG_TURN_RADIUS, x_max + 3 * AVG_TURN_RADIUS)
+            yk = np.random.uniform(y_min - 3 * AVG_TURN_RADIUS, y_max + 3 * AVG_TURN_RADIUS)
             # print(f"Sampled ({xk: 05.1f},{yk: 05.1f})\r", end="")
 
             # Check if the point is inside any keep out boxes
@@ -184,7 +183,7 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
             min_deviation = np.inf
             min_index = -1
-            for j, node in enumerate(all_nodes):
+            for j, node in enumerate(tree):
                 fwd_deviation = node.get_fwd_deviation(xk,yk)
                 if fwd_deviation < min_deviation:
                     min_deviation = fwd_deviation
@@ -232,8 +231,8 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                                 # Check if the line segment intersects with any keep out boxes
                                 collision_list = [
                                     box.detect_collision(
-                                        newly_adopted_node.get_fwd_position()[0], 
-                                        newly_adopted_node.get_fwd_position()[1], 
+                                        newly_adopted_node.get_position()[0], 
+                                        newly_adopted_node.get_position()[1], 
                                         orphan.get_position()[0], 
                                         orphan.get_position()[1]
                                     ) for box in keep_out_boxes
@@ -244,9 +243,21 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                                     orphan.add_parent(newly_adopted_node)
                                     newly_adopted.append(orphans.pop(k))
 
-                # Check if next gate was just adopted
-                if tuple(next_gate) in [node.get_position() for node in tree]:
-                    flag_gate_loaded = False
+                        # Check if next gate was just adopted
+                        if newly_adopted_node.get_position() == tuple(next_gate):
+                            # Next gate was just adopted, remove it from the orphans list
+                            flag_gate_loaded = False
+                            
+                            path = newly_adopted_node.get_path()
+                            old_tree.extend(tree)
+                            for node in tree:
+                                node.remove_parent()
+                            orphans.extend(tree)
+                            tree = [newly_adopted_node]
+                            newly_adopted = []
+                            min_index = -1
+                            min_deviation = np.inf
+
 
                 print(f"Iteration {i}: Sampled ({xk: 05.1f},{yk: 05.1f}) from ({x_min},{y_min}) to ({x_max},{y_max}), {len(tree): 5d} nodes in tree, {len(orphans) :5d} orphans, next gate is {next_gate}")
         except KeyboardInterrupt:
@@ -254,10 +265,12 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
             break
 
     # Calculate finishing path and time
-    path = tree[-1].get_path()
     time = TIMESTEP_SEC * len(path)
+    if not len(old_tree):
+        # No tree to add
+        old_tree = tree
 
-    return tree, orphans, path, time
+    return old_tree, orphans, path, time
 
 def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
     '''
@@ -283,7 +296,7 @@ def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
             ax.add_line(line)
     for orphan in orphans:
         orphan_x, orphan_y = orphan.get_position()
-        ax.plot(orphan_x, orphan_y, 'rx', markersize=5)
+        ax.plot(orphan_x, orphan_y, 'rx', markersize=3)
         # print(f"Orphan node {orphan.get_position()}")
 
     # Add the start and goal nodes to the plot
@@ -309,7 +322,7 @@ def main():
 
     # Define the start and goal coordinates
     start_coords = [0, 0]
-    gate_coords = [[2, 2], [5, 5], [8, 8]]
+    gate_coords = [[2, 2], [5, 5], [8, 8], [5,5]]*2
     gate_coords_copy = gate_coords.copy()
 
     # Define the keep out boxes
