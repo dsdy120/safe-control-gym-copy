@@ -127,17 +127,17 @@ class Controller():
         ## generate waypoints for planning
 
         GATE_POSITIONS = ( # True / False determines if gate is parallel to y-axis or not
-            (True,0.5, -2.5)
-            (False,2.0, -1.5)
-            (True,0.0, 0.2)
-            (False,-0.5, 1.5)
+            (True,0.5, -2.5),
+            (False,2.0, -1.5),
+            (True,0.0, 0.2),
+            (False,-0.5, 1.5),
         )
 
         OBSTACLE_POSITIONS = (
-            (1.5,-2.5)
-            (0.5,-1.0)
-            (1.5,0.0)
-            (-1.0, 0.0)
+            (1.5,-2.5),
+            (0.5,-1.0),
+            (1.5,0.0),
+            (-1.0, 0.0),
         )
 
         GATE_WIDTH = 0.4
