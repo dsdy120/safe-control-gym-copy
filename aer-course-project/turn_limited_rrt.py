@@ -11,17 +11,12 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 import time
 
-TIMESTEP_SEC = 0.4
-MAX_ACCELERATION = 2.0
-MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
+TIMESTEP_SEC = 1.0
+STEP_LENGTH = 0.3
 
-AVG_TURN_RADIUS = 0.3
-AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
-STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
+MAX_DEVIATION = STEP_LENGTH * np.sin(np.deg2rad(35))
 
 MIN_SAMPLING_DISTANCE = 0
-
-print(f"Average speed is {AVG_SPEED} m/s")
 
 class TreeNode:
     '''

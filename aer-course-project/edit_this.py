@@ -141,17 +141,17 @@ class Controller():
         )
 
         OBSTACLE_POSITIONS = (
-            # (1.5,-2.5),
-            # (0.5,-1.0),
-            # (1.5,0.0),
-            # (-1.0, 0.0),
+            (1.5,-2.5),
+            (0.5,-1.0),
+            (1.5,0.0),
+            (-1.0, 0.0),
         )
 
         GATE_WIDTH = 0.4
         GATE_THICKNESS = 0.05
         OBSTACLE_RADIUS = 0.06
         UNCERTAINTY_RADIUS = 0.2
-        AVOIDANCE_SAFETY_FACTOR = 1.0
+        AVOIDANCE_SAFETY_FACTOR = 1.1
         RACE_HEIGHT = 1.0
 
         KEEP_OUT_BOXES = []
@@ -227,17 +227,16 @@ class Controller():
         tlrrt.plot_tree(X_MIN, X_MAX, Y_MIN, Y_MAX,gate_coords_2d_copy, tree, orphans, path, KEEP_OUT_BOXES)
 
         # Create waypoints
-        path_coords_2d = []
+        path_coords_3d = []
         for i in path:
             position_x,position_y = i.get_position()
-            path_coords_2d.append([position_x, position_y])
+            path_coords_3d.append([position_x, position_y, RACE_HEIGHT])
 
-        path_coords_3d = [i.append(RACE_HEIGHT) for i in path_coords_2d]
         waypoints.extend(path_coords_3d)
 
         # Polynomial fit.
         self.waypoints = np.array(waypoints)
-        deg = 6
+        deg = 50
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
@@ -247,7 +246,7 @@ class Controller():
         self.ref_x = fx(t_scaled)
         self.ref_y = fy(t_scaled)
         self.ref_z = fz(t_scaled)
-
+    
         #########################
         # REPLACE THIS (END) ####
         #########################
@@ -322,7 +321,7 @@ class Controller():
         elif iteration == 20*self.CTRL_FREQ+1:
             x = self.ref_x[-1]
             y = self.ref_y[-1]
-            z = 1.5 
+            z = self.ref_z[-1]
             yaw = 0.
             duration = 2.5
 
@@ -330,18 +329,18 @@ class Controller():
             args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 23*self.CTRL_FREQ:
-            x = self.initial_obs[0]
-            y = self.initial_obs[2]
-            z = 1.5
+            x = -0.5
+            y = 2.0
+            z = 0.5
             yaw = 0.
-            duration = 6
+            duration = 0.5
 
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
-            duration = 3
+            duration = 0.5
 
             command_type = Command(3)  # Land.
             args = [height, duration]
