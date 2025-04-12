@@ -253,6 +253,7 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                             # for node in tree:
                             #     node.remove_parent()
                             # orphans.extend(tree)
+                            orphans = []
                             tree = [newly_adopted_node]
                             newly_adopted = []
                             min_index = -1
