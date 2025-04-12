@@ -11,11 +11,11 @@ import matplotlib.lines as lines
 import matplotlib.animation as animation
 import time
 
-TIMESTEP_SEC = 0.9
-MAX_ACCELERATION = 1.0
+TIMESTEP_SEC = 0.4
+MAX_ACCELERATION = 2.0
 MAX_DEVIATION = 0.5 * MAX_ACCELERATION * TIMESTEP_SEC**2
 
-AVG_TURN_RADIUS = 0.6
+AVG_TURN_RADIUS = 0.3
 AVG_SPEED = np.sqrt(MAX_ACCELERATION * AVG_TURN_RADIUS)
 STEP_LENGTH = AVG_SPEED * TIMESTEP_SEC
 
@@ -156,6 +156,13 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
     # Create the tree
     tree = [root]
+    # Create N starting nodes in cardinal directions
+    N = 16
+    for angle in np.linspace(0, 2*np.pi, N, endpoint=False):
+        x = root._x + STEP_LENGTH * np.cos(angle)
+        y = root._y + STEP_LENGTH * np.sin(angle)
+        node = TreeNode(x, y, root)
+        tree.append(node)
     # Create the list of keep out boxes
     keep_out_boxes = [KeepOutBox(*box) for box in keep_out_boxes]
     # Create list of orphans
@@ -230,11 +237,27 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                     newly_adopted = []
                     newly_adopted.append(new_node)
 
+                    print("Checking for orphans to adopt")
                     while len(newly_adopted):
                         newly_adopted_node = newly_adopted.pop(0)
                         tree.append(newly_adopted_node)
                         # print(f"Adopted node {newly_adopted_node.get_position()} from orphans")
                         # Check if any orphans are eligible for adoption
+                        # Check if next gate was just adopted
+                        if newly_adopted_node.get_position() == tuple(next_gate):
+                            
+                            flag_gate_loaded = False
+                            
+                            path = newly_adopted_node.get_path()
+                            old_tree.extend(tree)
+                            # for node in tree:
+                            #     node.remove_parent()
+                            # orphans.extend(tree)
+                            tree = [newly_adopted_node]
+                            newly_adopted = []
+                            min_index = -1
+                            min_deviation = np.inf
+
                         for k,orphan in enumerate(orphans):
                             if newly_adopted_node.get_fwd_deviation(
                                 orphan.get_position()[0], 
@@ -255,21 +278,6 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
                                     orphan.add_parent(newly_adopted_node)
                                     newly_adopted.append(orphans.pop(k))
 
-                        # Check if next gate was just adopted
-                        if newly_adopted_node.get_position() == tuple(next_gate):
-                            
-                            flag_gate_loaded = False
-                            
-                            path = newly_adopted_node.get_path()
-                            old_tree.extend(tree)
-                            # for node in tree:
-                            #     node.remove_parent()
-                            # orphans.extend(tree)
-                            tree = [newly_adopted_node]
-                            newly_adopted = []
-                            min_index = -1
-                            min_deviation = np.inf
-
             else:
                 # Forward deviation is too high, assign to orphans
                 orphans.append(TreeNode(xk,yk))
@@ -280,19 +288,15 @@ def rrt(x_min,x_max,y_min,y_max,start_coords:list,gate_coords:list, keep_out_box
 
     # Calculate finishing path and time
     time = TIMESTEP_SEC * len(path)
-    if not len(old_tree):
-        # No tree to add
-        old_tree = tree
+    old_tree.extend(tree)
 
     return old_tree, orphans, path, time
 
-def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
+def plot_tree(x_min,x_max,y_min,y_max,gate_coords, tree, orphans, path, keep_out_boxes):
     '''
     Animate the growth of the tree.
     '''
     fig, ax = plt.subplots()
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 10)
     ax.set_aspect('equal')
     ax.set_title('RRT Tree Growth')
     ax.set_xlabel('X')
@@ -310,7 +314,7 @@ def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
             ax.add_line(line)
     for orphan in orphans:
         orphan_x, orphan_y = orphan.get_position()
-        ax.plot(orphan_x, orphan_y, 'rx', markersize=3)
+        ax.plot(orphan_x, orphan_y, 'gx', markersize=1)
         # print(f"Orphan node {orphan.get_position()}")
 
     # Add the start and goal nodes to the plot
@@ -322,7 +326,7 @@ def plot_tree(gate_coords, tree, orphans, path, keep_out_boxes):
     # Add the path to the plot
     path_x = [node._x for node in path]
     path_y = [node._y for node in path]
-    ax.plot(path_x, path_y, 'r-', linewidth=3, label='Path')
+    ax.plot(path_x, path_y, 'r-', linewidth=2, label='Path')
 
     ax.legend(loc='right')
     plt.show()
@@ -354,7 +358,7 @@ def main():
     print(f"Path found taking {time:.2f} seconds")
 
     # plot the tree
-    plot_tree(gate_coords_copy,tree, orphans, path, keep_out_boxes)
+    plot_tree(x_min,x_max,y_min,y_max,gate_coords_copy,tree, orphans, path, keep_out_boxes)
 
 if __name__ == "__main__":
     main()

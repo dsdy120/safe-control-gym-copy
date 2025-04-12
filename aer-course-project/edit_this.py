@@ -125,26 +125,33 @@ class Controller():
         # REPLACE THIS (START) ##
         #########################
         ## generate waypoints for planning
+        X_MIN = -3.5
+        X_MAX = 3.5
+        Y_MIN = -3.5
+        Y_MAX = 3.5
+
+        END_X = -0.5
+        END_Y = 2.0
 
         GATE_POSITIONS = ( # True / False determines if gate is parallel to y-axis or not
-            (True,0.5, -2.5)
-            (False,2.0, -1.5)
-            (True,0.0, 0.2)
-            (False,-0.5, 1.5)
+            (True,0.5, -2.5),
+            (False,2.0, -1.5),
+            (True,0.0, 0.2),
+            (False,-0.5, 1.5),
         )
 
         OBSTACLE_POSITIONS = (
-            (1.5,-2.5)
-            (0.5,-1.0)
-            (1.5,0.0)
-            (-1.0, 0.0)
+            # (1.5,-2.5),
+            # (0.5,-1.0),
+            # (1.5,0.0),
+            # (-1.0, 0.0),
         )
 
         GATE_WIDTH = 0.4
         GATE_THICKNESS = 0.05
         OBSTACLE_RADIUS = 0.06
         UNCERTAINTY_RADIUS = 0.2
-        AVOIDANCE_SAFETY_FACTOR = 2.0
+        AVOIDANCE_SAFETY_FACTOR = 1.0
         RACE_HEIGHT = 1.0
 
         KEEP_OUT_BOXES = []
@@ -196,14 +203,37 @@ class Controller():
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        # Example code: hardcode waypoints 
-        waypoints.append((-0.5, -3.0, 2.0))
-        waypoints.append((-0.5, -2.0, 2.0))
-        waypoints.append((-0.5, -1.0, 2.0))
-        waypoints.append((-0.5,  0.0, 2.0))
-        waypoints.append((-0.5,  1.0, 2.0))
-        waypoints.append((-0.5,  2.0, 2.0))
-        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])
+        # Create gate sequence
+        start_coords_2d = waypoints[0][:2]
+        gate_indices = np.array([i for i in range(len(GATE_POSITIONS))])
+        # additional_gates = np.random.choice(gate_indices, size=2, replace=True)
+        # gate_indices = np.concatenate((gate_indices, additional_gates))
+        # np.random.shuffle(gate_indices)
+        print(gate_indices)
+        gate_coords_2d = []
+        for i in gate_indices:
+            gate_coords_2d.append([GATE_POSITIONS[i][1], GATE_POSITIONS[i][2]])
+
+        gate_coords_2d.append([END_X, END_Y])
+
+        gate_coords_2d_copy = gate_coords_2d.copy()
+
+        tree, orphans, path, time = tlrrt.rrt(
+            X_MIN, X_MAX, Y_MIN, Y_MAX,
+            start_coords_2d, gate_coords_2d,
+            KEEP_OUT_BOXES,
+        )
+
+        tlrrt.plot_tree(X_MIN, X_MAX, Y_MIN, Y_MAX,gate_coords_2d_copy, tree, orphans, path, KEEP_OUT_BOXES)
+
+        # Create waypoints
+        path_coords_2d = []
+        for i in path:
+            position_x,position_y = i.get_position()
+            path_coords_2d.append([position_x, position_y])
+
+        path_coords_3d = [i.append(RACE_HEIGHT) for i in path_coords_2d]
+        waypoints.extend(path_coords_3d)
 
         # Polynomial fit.
         self.waypoints = np.array(waypoints)
