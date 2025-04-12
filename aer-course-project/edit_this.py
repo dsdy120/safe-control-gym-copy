@@ -191,7 +191,6 @@ class Controller():
 
 
         # Call a function in module `example_custom_utils`.
-        ecu.exampleFunction()
 
         # initial waypoint
         if use_firmware:
@@ -303,18 +302,18 @@ class Controller():
             args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 23*self.CTRL_FREQ:
-            x = self.initial_obs[0]
-            y = self.initial_obs[2]
-            z = 1.5
+            x = -0.5
+            y = 2.0
+            z = 1.0
             yaw = 0.
-            duration = 6
+            duration = 0.5
 
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
-            duration = 3
+            duration = 0.5
 
             command_type = Command(3)  # Land.
             args = [height, duration]
