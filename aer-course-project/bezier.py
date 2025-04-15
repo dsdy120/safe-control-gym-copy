@@ -3,6 +3,7 @@
 Please use a file like this one to add extra functions.
 
 """
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -13,9 +14,9 @@ from matplotlib import colors
 from matplotlib import cm
 import collections
 
-AVG_COLLISION_THRESHOLD = 0.001
+AVG_COLLISION_THRESHOLD = 0.002
 SAMPLE_BUFFER_SIZE = 1
-RANDOM_WALK_RANGE = 3
+RANDOM_WALK_RANGE = 1
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -126,13 +127,14 @@ class Trajectory:
         for i in range(SAMPLE_BUFFER_SIZE):
             collision_fractions.appendleft(1)
 
-        bias = [0.0 for gate in self._gates]
         best_avg_collision_fraction = 1.0
         collision_delta = 1.0
         best_bias = [0.0 for gate in self._gates]
-        j = 0
+        t_start = time.perf_counter()
         while True:
-            j += 1
+            if time.perf_counter() - t_start > 15:
+                print("Trajectory optimization timed out.")
+                break
             try:
                 next_bias = [0.0 for gate in self._gates]
                 for i, gate in enumerate(self._gates):
@@ -170,7 +172,13 @@ class Trajectory:
         return self._traj_history
     
     def get_trajectory(self):
-        return 
+        trajectory = []
+        for curve in self._curves:
+            # interpolate between points
+            for t in np.linspace(0, 1, 50):
+                x, y = curve.get_point(t)
+                trajectory.append([x, y])
+        return trajectory
 
 
 class KeepOutBox:

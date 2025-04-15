@@ -150,6 +150,11 @@ class Controller():
         X_BOUNDS = (-3.5, 3.5)
         Y_BOUNDS = (-3.5, 3.5)
 
+        START_X = -1
+        START_Y = -3
+        END_X = -0.5
+        END_Y = 2.0
+
         KEEP_OUT_BOXES = []
 
         for i,v in enumerate(OBSTACLE_POSITIONS):
@@ -225,16 +230,29 @@ class Controller():
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        gate_coords = list(GATE_POSITIONS)
-        np.random.shuffle(gate_coords)
+        gate_indices = [i for i in range(len(GATE_POSITIONS))] # List of gate indices to be visited
+        # gate_indices = gate_indices + np.random.choice(gate_indices, size=2, replace=False).tolist() # Randomly select 2 gates to be visited twice
+        # np.random.shuffle(gate_indices) # Shuffle the list of gate indices
+
+        gate_coords = [(True,START_X,START_Y)]
+        for i in gate_indices:
+            gate_coords.append(GATE_POSITIONS[i])
+
+        gate_coords.append((False,END_X, END_Y)) # End Point
 
         trajectory_planner = bezier.Trajectory(gate_coords,KEEP_OUT_BOXES)
         traj_history = trajectory_planner.optimize_trajectory()
         bezier.animation(X_BOUNDS,Y_BOUNDS, GATE_POSITIONS, KEEP_OUT_BOXES, traj_history, 12)
 
+        trajectory = trajectory_planner.get_trajectory()
+        for i in trajectory:
+            i.append(RACE_HEIGHT)
+
+        waypoints.extend(trajectory)
+
         # Polynomial fit.
         self.waypoints = np.array(waypoints)
-        deg = 6
+        deg = 100
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
@@ -319,22 +337,22 @@ class Controller():
         elif iteration == 20*self.CTRL_FREQ+1:
             x = self.ref_x[-1]
             y = self.ref_y[-1]
-            z = 1.5 
+            z = self.ref_z[-1]
             yaw = 0.
-            duration = 2.5
+            duration = 0
 
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == 23*self.CTRL_FREQ:
-            x = -0.5
-            y = 2.0
-            z = 1.0
-            yaw = 0.
-            duration = 0.5
+        # elif iteration == 23*self.CTRL_FREQ:
+        #     x = -0.5
+        #     y = 2.0
+        #     z = 1.0
+        #     yaw = 0.
+        #     duration = 0
 
-            command_type = Command(5)  # goTo.
-            args = [[x, y, z], yaw, duration, False]
+        #     command_type = Command(5)  # goTo.
+        #     args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
