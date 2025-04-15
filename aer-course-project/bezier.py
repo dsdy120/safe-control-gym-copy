@@ -5,7 +5,7 @@ Please use a file like this one to add extra functions.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
@@ -14,24 +14,27 @@ from matplotlib import cm
 import collections
 
 AVG_COLLISION_THRESHOLD = 0.001
-SAMPLE_BUFFER_SIZE = 1000
+SAMPLE_BUFFER_SIZE = 3
+RANDOM_WALK_RANGE = 0.7
 
-def animation(gate_coords:list, ko_box_coords:list,traj_history:list):
+def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=50):
     """
-    Generates an animation of the trajectory optimization process.
+    Generates an animation of the trajectory optimization process with a frame counter.
+    The `interval` parameter controls the speed of the animation (in milliseconds).
     """
     fig, ax = plt.subplots()
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
+    ax.set_xlim(x_lim)
+    ax.set_ylim(y_lim)
+    ax.set_aspect('equal', adjustable='box')
 
     # Create a list of patches for the gates
     gate_patches = []
     for gate in gate_coords:
         x, y = gate[1], gate[2]
         if gate[0]:
-            rect = Rectangle((x-0.5, y-0.5), 1, 1, color='blue')
+            rect = Rectangle((x-0.125, y-0.125), 0.25, 0.25, color='blue')
         else:
-            rect = Rectangle((x-0.5, y-0.5), 1, 1, color='red')
+            rect = Rectangle((x-0.125, y-0.125), 0.25, 0.25, color='red')
         gate_patches.append(rect)
 
     # Create a list of patches for the keep-out boxes
@@ -50,9 +53,13 @@ def animation(gate_coords:list, ko_box_coords:list,traj_history:list):
     # Create a line object for the trajectory
     line, = ax.plot([], [], lw=2)
 
+    # Add a text object for the frame counter
+    frame_text = ax.text(0.02, 0.95, '', transform=ax.transAxes, fontsize=12, color='black')
+
     def init():
         line.set_data([], [])
-        return line,
+        frame_text.set_text('')
+        return line, frame_text
 
     def animate(i):
         if i < len(traj_history):
@@ -67,9 +74,15 @@ def animation(gate_coords:list, ko_box_coords:list,traj_history:list):
                     x_data.append(x)
                     y_data.append(y)
 
-    ani = animation.FuncAnimation(fig, animate, init_func=init,
-                                  frames=len(traj_history), interval=100)
+            line.set_data(x_data, y_data)
+            frame_text.set_text(f"Frame: {i+1}/{len(traj_history)}")
+            return line, frame_text
+        else:
+            # Pause on the last frame
+            ani.event_source.stop()
+            return line, frame_text
     
+    ani = FuncAnimation(fig, animate, frames=len(traj_history), init_func=init, blit=True, repeat=False, interval=interval)
     plt.show()
 
 
@@ -111,34 +124,42 @@ class Trajectory:
     
     def optimize_trajectory(self):
         collision_fractions = collections.deque(maxlen=SAMPLE_BUFFER_SIZE)
-        for i in range(len(SAMPLE_BUFFER_SIZE)):
-            collision_fractions.put(1)
+        for i in range(SAMPLE_BUFFER_SIZE):
+            collision_fractions.appendleft(1)
 
         bias = [0.0 for gate in self._gates]
 
         while True:
-            avg_collision_fraction = sum(collision_fractions) / collision_fractions.qsize()
-            if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
+            try:
+                avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
+                print(f"Average collision fraction: {avg_collision_fraction}\r", end="")
+                if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
+                    break
+
+                for i, gate in enumerate(self._gates):
+                    gate:Gate
+                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, bias[i])
+
+                indiv_collision_fractions = [
+                    curve.check_collision_fraction(ko_box)
+                    for curve in self._curves
+                    for ko_box in self._ko_boxes
+                ]
+
+                new_collision_fraction = sum(indiv_collision_fractions) / len(indiv_collision_fractions)
+                collision_fractions.appendleft(new_collision_fraction)
+
+                self._traj_history.append(
+                    [curve.get_all_ctrl_points() for curve in self._curves]
+                )
+            except KeyboardInterrupt:
+                print("Trajectory optimization interrupted.")
                 break
 
-            for i, gate in enumerate(self._gates):
-                gate:Gate
-                bias[i] = gate.aligned_ctrl_pt_rnd_walk(0.1)
-
-            indiv_collision_fractions = [
-                curve.check_collision_fraction(ko_box)
-                for curve in self._curves
-                for ko_box in self._ko_boxes
-            ]
-
-            new_collision_fraction = sum(indiv_collision_fractions) / len(indiv_collision_fractions)
-            collision_fractions.put(new_collision_fraction)
-
-            self._traj_history.append(
-                [curve.get_all_ctrl_points() for curve in self._curves]
-            )
-
         return self._traj_history
+    
+    def get_trajectory(self):
+        return 
 
 
 class KeepOutBox:
@@ -211,13 +232,13 @@ class Gate:
         self._Y:float = coords[1]
         self._VERTICAL = vertical
 
-        if next_curve is None:
-            next_curve = BezierCurve((self._X, self._Y), (self._X, self._Y), (self._X, self._Y), (self._X, self._Y))
-        if previous_curve is None:
-            previous_curve = BezierCurve((self._X, self._Y), (self._X, self._Y), (self._X, self._Y), (self._X, self._Y))
+        self._next_curve = BezierCurve((self._X, self._Y), (self._X, self._Y), (self._X, self._Y), (self._X, self._Y))
+        self._previous_curve = BezierCurve((self._X, self._Y), (self._X, self._Y), (self._X, self._Y), (self._X, self._Y))
 
-        self.register_next_curve(next_curve)
-        self.register_prev_curve(previous_curve)
+        if next_curve is not None:
+            self.register_next_curve(next_curve)
+        if previous_curve is not None:
+            self.register_prev_curve(previous_curve)
 
     def get_gate_location(self):
         return (self._X, self._Y)
@@ -239,7 +260,7 @@ class Gate:
         self._previous_curve.set_p3((self._X, self._Y))
         rel_x = self._X + 1 if self._VERTICAL else self._X
         rel_y = self._Y + 1 if not self._VERTICAL else self._Y
-        self.set_ctrl_points_rel(rel_x, rel_y)
+        self.set_ctrl_points_abs(self._X + rel_x, self._Y + rel_y)
 
     def register_next_curve(self, curve:BezierCurve):
         self._next_curve = curve
@@ -271,11 +292,19 @@ class Gate:
         return step
     
 def main():
-    gate_coords = [(True, 0, 0), (False, 1, 1), (True, 2, 2)]
-    ko_box_coords = [(0.5, 0.5, 1.5, 1.5), (1.5, 1.5, 2.5, 2.5)]
+    gate_coords = [(True, 0, 0), (False, 2, 2), (True, 4, 4)]
+    ko_box_coords = [(0.5, 0.5, 1.5, 1.5), (2.5, 2.5, 3.5, 3.5)]
+    # Add wall hit-boxes 20 units deep on all 4 sides of the play area, defined by -1,-1 and 5,5
+    ko_box_coords.append((-20, -20, -1, 20)) # left wall
+    ko_box_coords.append((5, -20, 25, 20)) # right wall
+    ko_box_coords.append((-20, -21, 20, -1)) # bottom wall
+    ko_box_coords.append((-20, 5, 20, 25)) # top wall
+
+    x_lim = (-1, 5)
+    y_lim = (-1, 5)
     traj = Trajectory(gate_coords, ko_box_coords)
     traj_history = traj.optimize_trajectory()
-    animation(gate_coords, ko_box_coords, traj_history)
+    animation(x_lim, y_lim, gate_coords, ko_box_coords, traj_history)
 
 if __name__ == "__main__":
     main()
