@@ -129,15 +129,19 @@ class Controller():
 
         # Call a function in module `example_custom_utils`.
         #ecu.exampleFunction()
-        res = 0.1
-        M = ecu.map_generation(res)
-        gate_order = np.array([1, 2, 3, 4])
+
+        res = 0.1 # set resolution of the map
+        obs = 0 # set obstacles (1:True, 0:False)
+        # M = ecu.map_generation(res) # generate map with obstacles
+
+        gate_order = np.array([1, 2, 3, 4, 1, 2])
         #np.random.shuffle(gate_order)
-        #path1, path2, path3, path4, path5 = path_planning(res, gate_order, M).run_Astar()
-        #plot_map(M, res, path1, path2, path3, path4, path5)
+
         path = ecu.path_planning(res, gate_order, M).run_Astar()
+        
+
+        M = ecu.map_generation(res, obs)
         ecu.plot_map(M, res, path)
-        print(path)
 
         # initial waypoint
         """if use_firmware:

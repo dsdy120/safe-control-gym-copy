@@ -31,21 +31,45 @@ def map_generation(res, obs):
     gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
     gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
 
+    t = 3 # thickness of the gate
+
     # create obstacles around gates (determined experimentally)
-    for _, coord in enumerate(gate_vertical):
+    for i, coord in enumerate(gate_vertical):
         x = round((coord[0]+3.5)/res)
         y = round((coord[1]+3.5)/res)
 
-        M[(x-5):(x+6), (y-1)] = 1
-        M[(x-5):(x+6), (y+1)] = 1
+        if i == 0:
+            M[(x-5):(x+6), (y-1)] = 1
+            M[(x-5):(x+6), (y+1)] = 1
+
+            M[(x-2):(x+3), (y-t):y] = 1
+            M[(x-2):(x+3), (y+1):(y+t+1)] = 1
+
+        else:
+            M[(x-4):(x+6), (y-1)] = 1
+            M[(x-4):(x+6), (y+1)] = 1
+
+            M[(x-2):(x+3), (y-t):y] = 1
+            M[(x-2):(x+3), (y+1):(y+t+1)] = 1
 
 
-    for _, coord in enumerate(gate_horizontal):
+    for i, coord in enumerate(gate_horizontal):
         x = round((coord[0]+3.5)/res)
         y = round((coord[1]+3.5)/res)
 
-        M[(x+1), (y-5):(y+6)] = 1
-        M[(x-1), (y-5):(y+6)] = 1
+        if i == 0:
+            M[(x+1), (y-5):(y+6)] = 1
+            M[(x-1), (y-5):(y+6)] = 1
+
+            M[(x-t):x, (y-2):(y+3)] = 1
+            M[(x+1):(x+t+1), (y-2):(y+3)] = 1
+
+        else:
+            M[(x+1), (y-5):(y+2)] = 1
+            M[(x-1), (y-5):(y+2)] = 1
+
+            M[(x-t):x, (y-2):(y+3)] = 1
+            M[(x+1):(x+t+1), (y-2):(y+3)] = 1
 
     return M
 
@@ -144,7 +168,14 @@ class path_planning():
             if i!=len(self.gate_order):
                 M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
 
-            path = self.sample_path(path) # smooth the path
+            #path = self.sample_path(path) # smooth the path
+            
+            x = path[:, 0] # get x
+            y = path[:, 1] # get y
+            altitude = 1 # append constant z of 1m
+            z = np.ones_like(x) * (altitude+3.5)/self.res # get z           
+            path = np.vstack([x, y, z]).T # stack x, y, z
+            
             path_segments.append(path) # store the entire path
 
         full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
@@ -263,7 +294,6 @@ class path_planning():
         
         return np.array(path)
     
-
     # smooth the path using B-spline interpolation
     def sample_path(self, path):
 
