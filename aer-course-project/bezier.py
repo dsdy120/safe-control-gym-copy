@@ -96,6 +96,7 @@ class Trajectory:
         self._ko_boxes = []
         self._gates = []
         self._traj_history = []
+        self._GATE_SIGNS = []
 
         for coord_triplet in gate_coords:
             flag_vertical, x, y = coord_triplet
@@ -124,15 +125,20 @@ class Trajectory:
             next_locn = next_gate.get_gate_location()
 
             if curr_gate._VERTICAL:
+                sign = np.sign(next_locn[0] - curr_locn[0])
+                self._GATE_SIGNS.append(sign)
                 curr_gate.set_ctrl_points_abs(
-                    curr_locn[0] + MIN_CTRL_DIST * np.sign(next_locn[0] - curr_locn[0]),
+                    curr_locn[0] + MIN_CTRL_DIST * sign,
                     curr_locn[1]
                 )
             else:
+                sign = np.sign(next_locn[1] - curr_locn[1])
+                self._GATE_SIGNS.append(sign)
                 curr_gate.set_ctrl_points_abs(
                     curr_locn[0],
-                    curr_locn[1] + MIN_CTRL_DIST * np.sign(next_locn[1] - curr_locn[1])
+                    curr_locn[1] + MIN_CTRL_DIST * sign
                 )
+            self._GATE_SIGNS.append(1.0) # designate fly through end point upwards
 
         for ko_box in ko_box_coords:
             self._ko_boxes.append(KeepOutBox(*ko_box))
@@ -147,9 +153,11 @@ class Trajectory:
         for i in range(SAMPLE_BUFFER_SIZE):
             collision_fractions.appendleft(1)
 
+        gate_init_signs = self._GATE_SIGNS.copy()
+
         best_avg_collision_fraction = 1.0
         collision_delta = 1.0
-        best_ctrl_cfg = [0.0 for gate in self._gates]
+        best_ctrl_deviation = [0.0 for gate in self._gates]
         ctrl_cfg_deviation = [0.0 for gate in self._gates]
         t_start = time.perf_counter()
         while True:
@@ -161,7 +169,21 @@ class Trajectory:
                     gate:Gate
                     if gate._VERTICAL:
                         gate.set_ctrl_points_abs(
-                            gate.get_gate_location()[0] + ctrl_cfg_deviation[i] + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE),
+                            max(
+                                gate.get_gate_location()[0] + best_ctrl_deviation[i]\
+                                      + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                ,gate_init_signs[i] * MIN_CTRL_DIST
+                            ),
+                            gate.get_gate_location()[1]
+                        )
+                    else:
+                        gate.set_ctrl_points_abs(
+                            gate.get_gate_location()[0],
+                            max(
+                                gate.get_gate_location()[1] + best_ctrl_deviation[i]\
+                                      + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                ,gate_init_signs[i] * MIN_CTRL_DIST
+                            )
                         )
 
                 indiv_collision_fractions = [
@@ -180,7 +202,7 @@ class Trajectory:
                 avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
                 collision_delta = avg_collision_fraction - best_avg_collision_fraction
                 if collision_delta < 0:
-                    best_ctrl_cfg = ctrl_cfg_deviation.copy()
+                    best_ctrl_deviation = ctrl_cfg_deviation.copy()
                     best_avg_collision_fraction = avg_collision_fraction
 
 
