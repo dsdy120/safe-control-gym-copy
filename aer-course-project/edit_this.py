@@ -43,10 +43,10 @@ except ImportError:
 # Optionally, create and import modules you wrote.
 # Please refrain from importing large or unstable 3rd party packages.
 try:
-    import example_custom_utils as ecu
+    import bezier
 except ImportError:
     # PyTest import.
-    from . import example_custom_utils as ecu
+    from . import bezier
 
 #########################
 # REPLACE THIS (END) ####
@@ -140,12 +140,15 @@ class Controller():
             (-1.0, 0.0),
         )
 
+        WALL_THICKNESS = 20
         GATE_WIDTH = 0.4
         GATE_THICKNESS = 0.05
         OBSTACLE_RADIUS = 0.06
         UNCERTAINTY_RADIUS = 0.2
-        AVOIDANCE_SAFETY_FACTOR = 2.0
+        AVOIDANCE_SAFETY_FACTOR = 1.2
         RACE_HEIGHT = 1.0
+        X_BOUNDS = (-3.5, 3.5)
+        Y_BOUNDS = (-3.5, 3.5)
 
         KEEP_OUT_BOXES = []
 
@@ -188,7 +191,31 @@ class Controller():
                     v[2]              + UNCERTAINTY_RADIUS*AVOIDANCE_SAFETY_FACTOR,
                 ))
 
-
+        # Add walls as hitboxes
+        KEEP_OUT_BOXES.append(( # left wall
+            X_BOUNDS[0]-WALL_THICKNESS,
+            X_BOUNDS[0],
+            Y_BOUNDS[0]-WALL_THICKNESS,
+            Y_BOUNDS[1]+WALL_THICKNESS,
+        ))
+        KEEP_OUT_BOXES.append(( # right wall
+            X_BOUNDS[1],
+            X_BOUNDS[1]+WALL_THICKNESS,
+            Y_BOUNDS[0]-WALL_THICKNESS,
+            Y_BOUNDS[1]+WALL_THICKNESS,
+        ))
+        KEEP_OUT_BOXES.append(( # bottom wall
+            X_BOUNDS[0]-WALL_THICKNESS,
+            X_BOUNDS[1]+WALL_THICKNESS,
+            Y_BOUNDS[0]-WALL_THICKNESS,
+            Y_BOUNDS[0],
+        ))
+        KEEP_OUT_BOXES.append(( # top wall
+            X_BOUNDS[0]-WALL_THICKNESS,
+            X_BOUNDS[1]+WALL_THICKNESS,
+            Y_BOUNDS[1],
+            Y_BOUNDS[1]+WALL_THICKNESS,
+        ))
 
         # Call a function in module `example_custom_utils`.
 
@@ -198,14 +225,9 @@ class Controller():
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        # Example code: hardcode waypoints 
-        waypoints.append((-0.5, -3.0, 2.0))
-        waypoints.append((-0.5, -2.0, 2.0))
-        waypoints.append((-0.5, -1.0, 2.0))
-        waypoints.append((-0.5,  0.0, 2.0))
-        waypoints.append((-0.5,  1.0, 2.0))
-        waypoints.append((-0.5,  2.0, 2.0))
-        waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])
+        trajectory_planner = bezier.Trajectory(GATE_POSITIONS,KEEP_OUT_BOXES)
+        traj_history = trajectory_planner.optimize_trajectory()
+        bezier.animation(X_BOUNDS,Y_BOUNDS, GATE_POSITIONS, KEEP_OUT_BOXES, traj_history, 12)
 
         # Polynomial fit.
         self.waypoints = np.array(waypoints)

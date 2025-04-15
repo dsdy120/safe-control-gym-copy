@@ -15,7 +15,7 @@ import collections
 
 AVG_COLLISION_THRESHOLD = 0.001
 SAMPLE_BUFFER_SIZE = 1
-RANDOM_WALK_RANGE = 3
+RANDOM_WALK_RANGE = 1
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -40,7 +40,7 @@ def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:l
     # Create a list of patches for the keep-out boxes
     ko_box_patches = []
     for ko_box in ko_box_coords:
-        x0, y0, x1, y1 = ko_box
+        x0, x1, y0, y1 = ko_box
         rect = Rectangle((x0, y0), x1-x0, y1-y0, color='green', alpha=0.5)
         ko_box_patches.append(rect)
 
@@ -51,7 +51,7 @@ def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:l
     ax.add_collection(all_patches)
 
     # Create a line object for the trajectory
-    line, = ax.plot([], [], lw=2)
+    line, = ax.plot([], [], lw=2, color = 'red')
 
     # Add a text object for the frame counter
     frame_text = ax.text(0.02, 0.95, '', transform=ax.transAxes, fontsize=12, color='black')
@@ -114,8 +114,7 @@ class Trajectory:
             next_gate.register_prev_curve(self._curves[i])
 
         for ko_box in ko_box_coords:
-            x0, y0, x1, y1 = ko_box
-            self._ko_boxes.append(KeepOutBox(x0, y0, x1, y1))
+            self._ko_boxes.append(KeepOutBox(*ko_box))
 
     def get_gate_coords(self,gate_index)->tuple:
         if gate_index < 0 or gate_index >= len(self._gates):
@@ -128,17 +127,13 @@ class Trajectory:
             collision_fractions.appendleft(1)
 
         bias = [0.0 for gate in self._gates]
+        prev_avg_collision_fraction = 1.0
 
         while True:
             try:
-                avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
-                print(f"Average collision fraction: {avg_collision_fraction}\r", end="")
-                if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
-                    break
-
                 for i, gate in enumerate(self._gates):
                     gate:Gate
-                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, avg_collision_fraction*bias[i])
+                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, bias[i])
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -152,6 +147,16 @@ class Trajectory:
                 self._traj_history.append(
                     [curve.get_all_ctrl_points() for curve in self._curves]
                 )
+
+                avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
+                collision_delta = avg_collision_fraction - prev_avg_collision_fraction
+                prev_avg_collision_fraction = avg_collision_fraction
+                bias = [bias[i] * collision_delta for i in range(len(bias))]
+
+                print(f"Average collision fraction: {avg_collision_fraction}\r", end="")
+                if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
+                    break
+
             except KeyboardInterrupt:
                 print("Trajectory optimization interrupted.")
                 break
@@ -163,7 +168,7 @@ class Trajectory:
 
 
 class KeepOutBox:
-    def __init__(self, x0:float, y0:float, x1:float, y1:float):
+    def __init__(self, x0:float, x1:float, y0:float, y1:float):
         self._x0 = x0
         self._x1 = x1
         self._y0 = y0
