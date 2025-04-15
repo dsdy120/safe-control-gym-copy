@@ -131,13 +131,15 @@ class Controller():
         #ecu.exampleFunction()
 
         res = 0.1 # set resolution of the map
-        obs = 0 # set obstacles (1:True, 0:False)
+        obs = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
-        gate_order = np.array([1, 2, 3, 4, 1, 2])
-        #np.random.shuffle(gate_order)
+        gate_order = np.array([1, 2, 3, 4, 0, 0])
+        gate_order[-2:] = np.random.randint(1,5, size=2)
+        np.random.shuffle(gate_order)
+        print(gate_order)
 
-        path = ecu.path_planning(res, gate_order, M).run_Astar()
+        path = ecu.path_planning(res, gate_order, obs).run_Astar()
         
 
         M = ecu.map_generation(res, obs)
@@ -175,7 +177,7 @@ class Controller():
         # self.waypoints = waypoints
 
         # Polynomial fit.
-        deg = 15
+        deg = 150
         t = np.arange(self.waypoints.shape[0])
         fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
         fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
@@ -260,26 +262,26 @@ class Controller():
         elif iteration == 20*self.CTRL_FREQ+1:
             x = self.ref_x[-1]
             y = self.ref_y[-1]
-            z = 1.5 
+            z = self.ref_z[-1]
             yaw = 0.
-            duration = 2.5
+            duration = 0
 
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == 23*self.CTRL_FREQ:
-            x = self.initial_obs[0]
-            y = self.initial_obs[2]
-            z = 1.5
-            yaw = 0.
-            duration = 6
+        # elif iteration == 23*self.CTRL_FREQ:
+        #     x = self.initial_obs[0]
+        #     y = self.initial_obs[2]
+        #     z = 1.5
+        #     yaw = 0.
+        #     duration = 6
 
-            command_type = Command(5)  # goTo.
-            args = [[x, y, z], yaw, duration, False]
+        #     command_type = Command(5)  # goTo.
+        #     args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
-            duration = 3
+            duration = 0
 
             command_type = Command(3)  # Land.
             args = [height, duration]
