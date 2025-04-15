@@ -17,6 +17,7 @@ import collections
 AVG_COLLISION_THRESHOLD = 0.002
 SAMPLE_BUFFER_SIZE = 1
 RANDOM_WALK_RANGE = 1
+MIN_CTRL_DIST = 0.5
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -114,6 +115,25 @@ class Trajectory:
             curr_gate.register_next_curve(self._curves[i])
             next_gate.register_prev_curve(self._curves[i])
 
+        # Set gate control pts to lead to the next gate organically
+        for i in range(len(self._curves)):
+            curr_gate:Gate = self._gates[i]
+            next_gate:Gate = self._gates[i+1]
+
+            curr_locn = curr_gate.get_gate_location()
+            next_locn = next_gate.get_gate_location()
+
+            if curr_gate._VERTICAL:
+                curr_gate.set_ctrl_points_abs(
+                    curr_locn[0] + MIN_CTRL_DIST * np.sign(next_locn[0] - curr_locn[0]),
+                    curr_locn[1]
+                )
+            else:
+                curr_gate.set_ctrl_points_abs(
+                    curr_locn[0],
+                    curr_locn[1] + MIN_CTRL_DIST * np.sign(next_locn[1] - curr_locn[1])
+                )
+
         for ko_box in ko_box_coords:
             self._ko_boxes.append(KeepOutBox(*ko_box))
 
@@ -129,7 +149,7 @@ class Trajectory:
 
         best_avg_collision_fraction = 1.0
         collision_delta = 1.0
-        best_bias = [0.0 for gate in self._gates]
+        best_ctrl_cfg = [0.0 for gate in self._gates]
         t_start = time.perf_counter()
         while True:
             if time.perf_counter() - t_start > 15:
@@ -139,7 +159,7 @@ class Trajectory:
                 next_bias = [0.0 for gate in self._gates]
                 for i, gate in enumerate(self._gates):
                     gate:Gate
-                    next_bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, best_bias[i])
+                    next_bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, best_ctrl_cfg[i])
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -157,7 +177,7 @@ class Trajectory:
                 avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
                 collision_delta = avg_collision_fraction - best_avg_collision_fraction
                 if collision_delta < 0:
-                    best_bias = next_bias.copy()
+                    best_ctrl_cfg = next_bias.copy()
                     best_avg_collision_fraction = avg_collision_fraction
 
 
