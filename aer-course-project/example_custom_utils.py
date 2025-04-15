@@ -11,91 +11,78 @@ def exampleFunction():
     x = -1
     return x
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-def map_generation(res):
-    NN = round(7/res)
-    M = np.zeros((NN, NN), dtype=int)
-
-    #obs = np.array([[1.5, -2.5], [0.5,-1], [1.5,0], [-1,0]])
-
-    #for _, coord in enumerate(obs):
-        #M[round((coord[0]-0.26+3.5)/res):round((coord[0]+0.26+3.5)/res), round((coord[1]-0.26+3.5)/res):round((coord[1]+0.26+3.5)/res)] = 1
+# generate map with obstacles (1) and free space (0)
+def map_generation(res, obs):
     
-    #gate_vertical = np.array([[0.5, -2.275], [0.5, -2.725], [0,0.425], [0,-0.025]])
-    #gate_horizontal = np.array([[2.225,-1.5], [1.775,-1.5], [-0.725,1.5], [-0.275,1.5]])
-    #t = 0.3
-    #opening = 0.15
-    #offset = (opening/2) + (t/2)
-    #length = 0.3
+    NN = round(7/res) # number of nodes
+    M = np.zeros((NN, NN), dtype=int) # initialize map with zeros (free)
 
-    #gate_vertical = np.array([[0.5, -2.5-offset], [0.5, -2.5+offset], [0,0.2-offset], [0,0.2+offset]])    
-    #gate_horizontal = np.array([[2.0-offset,-1.5], [2.0+offset,-1.5], [-0.5-offset,1.5], [-0.5+offset,1.5]])
+    # set obstacles if true
+    if obs == 1:
+        obs = np.array([[1.5, -2.5], [0.5,-1], [1.5,0], [-1,0]])
+        for _, coord in enumerate(obs):
+            M[round((coord[0]-0.26+3.5)/res):round((coord[0]+0.26+3.5)/res), round((coord[1]-0.26+3.5)/res):round((coord[1]+0.26+3.5)/res)] = 1
+    
+    # set gates
     gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
     gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
-    num = 7
 
+    # create obstacles around gates (determined experimentally)
     for _, coord in enumerate(gate_vertical):
-        #y = round((coord[1]-0.025+3.5)/res)
-        #M[round((coord[0]-0.06+3.5)/res):round((coord[0]+0.06+3.5)/res), y:(y+1)] = 1
-        #M[round((coord[0]-(length/2)+3.5)/res):round((coord[0]+(length/2)+3.5)/res), round((coord[1]-(t/2)+3.5)/res):round((coord[1]+(t/2)+3.5)/res)] = 1
         x = round((coord[0]+3.5)/res)
         y = round((coord[1]+3.5)/res)
-        #M[(x-1):(x+2), (y-3):y] = 1
-        #M[(x-1):(x+2), (y+1):(y+4)] = 1
 
         M[(x-5):(x+6), (y-1)] = 1
         M[(x-5):(x+6), (y+1)] = 1
 
 
     for _, coord in enumerate(gate_horizontal):
-        #x = round((coord[0]-0.025+3.5)/res)
-        #M[x:(x+1), round((coord[1]-0.06+3.5)/res):round((coord[1]+0.06+3.5)/res)] = 1
-        #M[round((coord[0]-(t/2)+3.5)/res):round((coord[0]+(t/2)+3.5)/res), round((coord[1]-(length/2)+3.5)/res):round((coord[1]+(length/2)+3.5)/res)] = 1
         x = round((coord[0]+3.5)/res)
         y = round((coord[1]+3.5)/res)
-        #M[(x-3):x, (y-1):(y+2)] = 1
-        #M[(x+1):(x+4), (y-1):(y+2)] = 1
 
         M[(x+1), (y-5):(y+6)] = 1
         M[(x-1), (y-5):(y+6)] = 1
 
     return M
 
-
-def update_map (M, path, gate_num, gate_coord, res):
+# update map by closing the gate on the side the drone entered
+def update_map(M, path, gate_num, gate_coord):
+    
     if gate_num == 1 or gate_num == 3:
         x = gate_coord[0] + (path[-2][0]-gate_coord[0])
-        M[x:(x+1), round(gate_coord[1]-(0.2/res)):round(gate_coord[1]+(0.2/res))] = 1
+        M[x:(x+1), gate_coord[1]] = 1
 
     else:
         y = gate_coord[1] + (path[-2][1]-gate_coord[1])
-        M[round(gate_coord[0] - (0.2/res)):round(gate_coord[0] + (0.2/res)), y:(y+1)] = 1
+        M[gate_coord[0], y:(y+1)] = 1
 
     return M
 
 
-#def plot_map(M, res, path1, path2, path3, path4, path5):
+# plot the map and the path
 def plot_map(M, res, path1):
+
     plt.figure(figsize=(8, 8))
     NN = round(7/res)
+
+    # plot obstacles as black x
     for i in range(NN):
         for j in range(NN):
             if M[i, j] == 1:
-                plt.plot(i, j, 'rx')
-            #else:
-                #plt.plot(i, j, 'kx')
+                plt.plot(i, j, 'kx')
                 
-    plt.plot((-1+3.5)/res, (-3+3.5)/res, 'go', label='Start')
-    plt.plot((-0.5+3.5)/res, (2+3.5)/res, 'bo', label='End')
     plt.plot(path1[:, 0], path1[:, 1], 'b-', linewidth=2, label='Path')
-    """plt.plot(path2[:, 0], path2[:, 1], 'g-', linewidth=2, label='Path')
-    plt.plot(path3[:, 0], path3[:, 1], 'k-', linewidth=2, label='Path')
-    plt.plot(path4[:, 0], path4[:, 1], 'y-', linewidth=2, label='Path')
-    plt.plot(path5[:, 0], path5[:, 1], 'c-', linewidth=2, label='Path')"""
+    plt.plot((-1+3.5)/res, (-3+3.5)/res, 'go', label='Start')
+    plt.plot((-0.5+3.5)/res, (2+3.5)/res, 'ro', label='End')
+    
+    x = np.array([(0.5+3.5)/res, (2.0+3.5)/res, 3.5/res, (-0.5+3.5)/res])
+    y = np.array([(-2.5+3.5)/res, (-1.5+3.5)/res, (0.2+3.5)/res, (1.5+3.5)/res])
+    plt.plot(x, y, 'r*', label='Gates')
+
     plt.grid(True)
     plt.axis('equal')
     plt.legend()
@@ -103,98 +90,103 @@ def plot_map(M, res, path1):
     plt.show()
 
 class path_planning():
-    def __init__(self, res, gate_order, M):
+    def __init__(self, res, gate_order, obs):
+        
+        # set parameters
         self.res = res
         self.NN = round(7/res)
-        self.M = map_generation(res)
+        self.obs = obs
+        self.gate_order = gate_order
         
+        # calculate coordinates of gates
         self.gate_coord = [
             np.array([round((0.5+3.5)/res), round((-2.5+3.5)/res)]),   # gate_1
             np.array([round((2.0+3.5)/res), round((-1.5+3.5)/res)]),   # gate_2
             np.array([round((0+3.5)/res), round((0.2+3.5)/res)]),      # gate_3
             np.array([round((-0.5+3.5)/res), round((1.5+3.5)/res)])    # gate_4
         ]
+        print(self.gate_coord)
 
-        self.gate_order = gate_order
-
-        self.gate_1 = self.gate_coord[gate_order[0] - 1]
-        self.gate_2 = self.gate_coord[gate_order[1] - 1]
-        self.gate_3 = self.gate_coord[gate_order[2] - 1]
-        self.gate_4 = self.gate_coord[gate_order[3] - 1]
-
+        # set start and end coordinates
         self.start = np.array([int((-1+3.5)/res), int((-3+3.5)/res)])
         self.end = np.array([int((-0.5+3.5)/res), int((2+3.5)/res)])
 
+    # run A* algorithm for each segment
     def run_Astar(self):
-        path_segments = []
+        
+        path_segments = [] # initialize
 
-        for i, (start, end, gate_num, gate_coord) in enumerate([
-            (self.start, self.gate_1, self.gate_order[0], self.gate_1),
-            (self.gate_1, self.gate_2, self.gate_order[1], self.gate_2),
-            (self.gate_2, self.gate_3, self.gate_order[2], self.gate_3),
-            (self.gate_3, self.gate_4, self.gate_order[3], self.gate_4),
-            (self.gate_4, self.end, None, None)
-        ]):
-            path = self.A_star(start, end, self.M)
-            if path is None or len(path) == 0:
-                print(f"Path segment {i+1} failed. Aborting.")
-                return None
-            if i < 4:  # Only update map for gate segments
-                self.M = update_map(self.M, path, gate_num, gate_coord, self.res)
+        # run A* for each segment
+        for i in range(len(self.gate_order)+1):
 
-            path = self.downsample_path(path)
-            path_segments.append(path)
+            M = map_generation(self.res, self.obs) # create the original map
+            
+            # start point to gate 1
+            if i == 0:
+                start = self.start # set start of path segment
+                end = self.gate_coord[self.gate_order[i] - 1] # set end of path segment
+                M_updated = M # initialize
+
+            # last gate to end point
+            elif i == len(self.gate_order):
+                start = self.gate_coord[self.gate_order[i-1] - 1] # set start of path segment
+                end = self.end # set end of path segment
+
+            # gate to gate
+            else:
+                start = self.gate_coord[self.gate_order[i-1] - 1] # set start of path segment
+                end = self.gate_coord[self.gate_order[i] - 1] # set end of path segment
+
+            # run A* algorithm to find optimal path segment
+            path = self.A_star(start, end, M_updated)
+
+            # close one side of gate so that drone passes through the gate
+            if i!=len(self.gate_order):
+                M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
+
+            path = self.sample_path(path) # smooth the path
+            path_segments.append(path) # store the entire path
 
         full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
-        return full_path
-    
-
-    """def run_Astar(self):
-        path_1 = self.A_star(self.start, self.gate_1, self.M)
-        self.M = update_map(self.M, path_1, gate_order[0], self.gate_1, res)
-        path_2 = self.A_star(self.gate_1, self.gate_2, self.M)
-        self.M = update_map(self.M, path_2, gate_order[1], self.gate_2, res)
-        path_3 = self.A_star(self.gate_2, self.gate_3, self.M)
-        self.M = update_map(self.M, path_3, gate_order[2], self.gate_3, res)
-        path_4 = self.A_star(self.gate_3, self.gate_4, self.M)
-        self.M = update_map(self.M, path_4, gate_order[3], self.gate_4, res)
-        path_5 = self.A_star(self.gate_4, self.end, self.M)
-        path = np.vstack([path_1, path_2, path_3, path_4, path_5])
-        path_smooth = self.downsample_path(path)
         
-        #return path_1, path_2, path_3, path_4, path_5
-        return path_smooth"""
+        return full_path
         
     def A_star(self, path_start, path_end, M):
-        
-        enable_diagonal = True
+    
+        enable_diagonal = True # enable diagonal movement
 
-        h0 = self.heuristic(*path_start, *path_end, enable_diagonal)
+        h0 = self.heuristic(*path_start, *path_end, enable_diagonal) # set initial heuristic
         openlist = [[path_start[0], path_start[1], 0, h0, h0, -1, -1]]  # x, y, g, h, f, parent_x, parent_y
         closelist = []
 
         while True:
-            current_index = self.lowest_f_index(openlist)
+
+            # get the node index with the lowest f value
+            current_index = self.lowest_f_index(openlist) 
             
+            # if openlist is empty, no solution found
             if current_index == -1:
                 print("No solution found!")
                 return
 
+            # remove the node with the lowest f value from openlist and add it to closelist
             current = openlist.pop(current_index)
             closelist.append(current)
 
+            # if the current node is the goal, reconstruct the path
             if self.is_same_location(current[0], current[1], *path_end):
                 print("Solution found!")
                 path = self.reconstruct_path(closelist)
                 break
 
+            # get the neighbors of the current node and their costs
             g_list, neighbors = self.cost_neighbors(M, current[2], self.NN, self.NN, current[0], current[1], closelist, enable_diagonal)
             for g, (nx, ny) in zip(g_list, neighbors):
-                h = self.heuristic(nx, ny, *self.end, enable_diagonal)
-                f = g + h
-                in_open, idx = self.is_in_list(openlist, nx, ny)
+                h = self.heuristic(nx, ny, *self.end, enable_diagonal) # calculate heuristic    
+                f = g + h # calculate total cost
+                in_open, idx = self.is_in_list(openlist, nx, ny) # check if neighbor is in openlist
                 if in_open:
-                    if g < openlist[idx][2]:  # update if better g
+                    if g < openlist[idx][2]:  # update if better cost to come
                         openlist[idx][2] = g
                         openlist[idx][4] = f
                         openlist[idx][5:7] = [current[0], current[1]]
@@ -202,270 +194,102 @@ class path_planning():
                     openlist.append([nx, ny, g, h, f, current[0], current[1]])
         return path
     
-    def heuristic(self, x1, y1, x2, y2, diagonal=True):
+    # calculate heuristic distance
+    def heuristic(self, x1, y1, x2, y2, diagonal):
         if diagonal:
+            # if diagonal movement is allowed, use Euclidean distance
             return np.hypot(x1 - x2, y1 - y2)
         else:
+            # if diagonal is not allowedd, use Manhattan distance
             return abs(x1 - x2) + abs(y1 - y2)
 
+    # check if two locations are the same
     def is_same_location(self, x1, y1, x2, y2):
         return int(x1) == int(x2) and int(y1) == int(y2)
 
+    # check if a location is in a list
     def is_in_list(self, lst, x, y):
+        # check if the location is in the list
         for i, item in enumerate(lst):
             if item[0] == x and item[1] == y:
-                return True, i
-        return False, -1
+                return True, i # return index if found
+        return False, -1 # if not found, return -1
 
-    def cost_neighbors(self, M, g_parent, size_x, size_y, x, y, closelist, diagonal=True):
-        directions = [(1,0), (-1,0), (0,1), (0,-1)]
-        if diagonal:
-            directions += [(1,1), (1,-1), (-1,1), (-1,-1)]
+    # get the neighbors of a node and their costs
+    def cost_neighbors(self, M, g_parent, size_x, size_y, x, y, closelist, diagonal):
         
+        directions = [(1,0), (-1,0), (0,1), (0,-1)] # all allowed steps
+        
+        if diagonal:
+            directions += [(1,1), (1,-1), (-1,1), (-1,-1)] # add diagonal steps if allowed
+        
+        # initialize
         g_list = []
         index_list = []
+        
+        # loop through all possible steps
         for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < size_x and 0 <= ny < size_y and M[nx, ny] == 0:
-                if not self.is_in_list(closelist, nx, ny)[0]:
-                    g = np.hypot(dx, dy) + g_parent
-                    g_list.append(g)
-                    index_list.append([nx, ny])
-        return g_list, index_list
-
-    def lowest_f_index(self, openlist):
-        if not openlist:
-            return -1
-        return np.argmin([node[4] for node in openlist])
-
-    def reconstruct_path(self, closelist):
-        path = [[closelist[-1][0], closelist[-1][1]]]
-        parent = [closelist[-1][5], closelist[-1][6]]
-        while not self.is_same_location(parent[0], parent[1], -1, -1):
-            path.insert(0, parent[:])
-            _, loc = self.is_in_list(closelist, parent[0], parent[1])
-            parent = [closelist[loc][5], closelist[loc][6]]
-        return np.array(path)
-    
-
-
-    def downsample_path(self, path_meters):
-        """
-        Smooth and downsample the (x, y) path using B-spline interpolation.
-        Append constant altitude (z).
-        
-        Args:
-            path_meters: Nx2 array of (x, y) in meters
-            num_points: number of interpolated waypoints
-            altitude: constant altitude for each point
-        
-        Returns:
-            waypoints: Nx3 array of (x, y, z)
-        """
-        num_points = 20
-        altitude = 1
-        # Extract x and y
-        x = path_meters[:, 0]
-        y = path_meters[:, 1]
-        
-        # Parameterize path by cumulative distance
-        distance = np.cumsum(np.sqrt(np.diff(x, prepend=x[0])**2 + np.diff(y, prepend=y[0])**2))
-        distance = distance / distance[-1]  # Normalize to [0, 1]
-
-        # Fit B-spline
-        tck, _ = interpolate.splprep([x, y], s=0)
-        
-        # Resample with fewer points
-        u_fine = np.linspace(0, 1, num_points)
-        x_smooth, y_smooth = interpolate.splev(u_fine, tck)
-
-        # Append constant z
-        z = np.ones_like(x_smooth) * altitude
-        waypoints = np.vstack([x_smooth, y_smooth, z]).T
-        #waypoints = np.vstack([x_smooth, y_smooth]).T
-
-        return waypoints
-
-    def __init__(self, res, gate_order, M):
-        self.res = res
-        self.NN = round(7/res)
-        self.M = map_generation(res)
-        
-        self.gate_coord = [
-            np.array([round((0.5+3.5)/res), round((-2.5+3.5)/res)]),   # gate_1
-            np.array([round((2.0+3.5)/res), round((-1.5+3.5)/res)]),   # gate_2
-            np.array([round((0+3.5)/res), round((0.2+3.5)/res)]),      # gate_3
-            np.array([round((-0.5+3.5)/res), round((1.5+3.5)/res)])    # gate_4
-        ]
-
-        self.gate_order = gate_order
-
-        self.gate_1 = self.gate_coord[gate_order[0] - 1]
-        self.gate_2 = self.gate_coord[gate_order[1] - 1]
-        self.gate_3 = self.gate_coord[gate_order[2] - 1]
-        self.gate_4 = self.gate_coord[gate_order[3] - 1]
-
-        self.start = np.array([int((-1+3.5)/res), int((-3+3.5)/res)])
-        self.end = np.array([int((-0.5+3.5)/res), int((2+3.5)/res)])
-
-    def run_Astar(self):
-        path_segments = []
-
-        for i, (start, end, gate_num, gate_coord) in enumerate([
-            (self.start, self.gate_1, self.gate_order[0], self.gate_1),
-            (self.gate_1, self.gate_2, self.gate_order[1], self.gate_2),
-            (self.gate_2, self.gate_3, self.gate_order[2], self.gate_3),
-            (self.gate_3, self.gate_4, self.gate_order[3], self.gate_4),
-            (self.gate_4, self.end, None, None)
-        ]):
-            path = self.A_star(start, end, self.M)
-            if path is None or len(path) == 0:
-                print(f"Path segment {i+1} failed. Aborting.")
-                return None
-            if i < 4:  # Only update map for gate segments
-                self.M = update_map(self.M, path, gate_num, gate_coord, self.res)
-
-            path = self.downsample_path(path)
-            path_segments.append(path)
-
-        full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
-        return full_path
-    
-
-    """def run_Astar(self):
-        path_1 = self.A_star(self.start, self.gate_1, self.M)
-        self.M = update_map(self.M, path_1, gate_order[0], self.gate_1, res)
-        path_2 = self.A_star(self.gate_1, self.gate_2, self.M)
-        self.M = update_map(self.M, path_2, gate_order[1], self.gate_2, res)
-        path_3 = self.A_star(self.gate_2, self.gate_3, self.M)
-        self.M = update_map(self.M, path_3, gate_order[2], self.gate_3, res)
-        path_4 = self.A_star(self.gate_3, self.gate_4, self.M)
-        self.M = update_map(self.M, path_4, gate_order[3], self.gate_4, res)
-        path_5 = self.A_star(self.gate_4, self.end, self.M)
-        path = np.vstack([path_1, path_2, path_3, path_4, path_5])
-        path_smooth = self.downsample_path(path)
-        
-        #return path_1, path_2, path_3, path_4, path_5
-        return path_smooth"""
-        
-    def A_star(self, path_start, path_end, M):
-        
-        enable_diagonal = True
-
-        h0 = self.heuristic(*path_start, *path_end, enable_diagonal)
-        openlist = [[path_start[0], path_start[1], 0, h0, h0, -1, -1]]  # x, y, g, h, f, parent_x, parent_y
-        closelist = []
-
-        while True:
-            current_index = self.lowest_f_index(openlist)
             
-            if current_index == -1:
-                print("No solution found!")
-                return
+            nx, ny = x + dx, y + dy # new point
 
-            current = openlist.pop(current_index)
-            closelist.append(current)
-
-            if self.is_same_location(current[0], current[1], *path_end):
-                print("Solution found!")
-                path = self.reconstruct_path(closelist)
-                break
-
-            g_list, neighbors = self.cost_neighbors(M, current[2], self.NN, self.NN, current[0], current[1], closelist, enable_diagonal)
-            for g, (nx, ny) in zip(g_list, neighbors):
-                h = self.heuristic(nx, ny, *self.end, enable_diagonal)
-                f = g + h
-                in_open, idx = self.is_in_list(openlist, nx, ny)
-                if in_open:
-                    if g < openlist[idx][2]:  # update if better g
-                        openlist[idx][2] = g
-                        openlist[idx][4] = f
-                        openlist[idx][5:7] = [current[0], current[1]]
-                else:
-                    openlist.append([nx, ny, g, h, f, current[0], current[1]])
-        return path
-    
-    def heuristic(self, x1, y1, x2, y2, diagonal=True):
-        if diagonal:
-            return np.hypot(x1 - x2, y1 - y2)
-        else:
-            return abs(x1 - x2) + abs(y1 - y2)
-
-    def is_same_location(self, x1, y1, x2, y2):
-        return int(x1) == int(x2) and int(y1) == int(y2)
-
-    def is_in_list(self, lst, x, y):
-        for i, item in enumerate(lst):
-            if item[0] == x and item[1] == y:
-                return True, i
-        return False, -1
-
-    def cost_neighbors(self, M, g_parent, size_x, size_y, x, y, closelist, diagonal=True):
-        directions = [(1,0), (-1,0), (0,1), (0,-1)]
-        if diagonal:
-            directions += [(1,1), (1,-1), (-1,1), (-1,-1)]
-        
-        g_list = []
-        index_list = []
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
+            # check if the new point is within bounds and not an obstacle
             if 0 <= nx < size_x and 0 <= ny < size_y and M[nx, ny] == 0:
+                # check if the new point is not in the closelist
                 if not self.is_in_list(closelist, nx, ny)[0]:
-                    g = np.hypot(dx, dy) + g_parent
-                    g_list.append(g)
-                    index_list.append([nx, ny])
+                    g = np.hypot(dx, dy) + g_parent # calculate cost
+                    g_list.append(g) # append cost to list
+                    index_list.append([nx, ny]) # append new point to list
+
         return g_list, index_list
 
+    # get the index of the node with the lowest f value (i.e., the next node to explore)
     def lowest_f_index(self, openlist):
+        # if openlist is empty, return -1
         if not openlist:
             return -1
+        # return the index of the node with the lowest f value
         return np.argmin([node[4] for node in openlist])
 
+    # reconstruct the path from the closelist
     def reconstruct_path(self, closelist):
-        path = [[closelist[-1][0], closelist[-1][1]]]
-        parent = [closelist[-1][5], closelist[-1][6]]
+        path = [[closelist[-1][0], closelist[-1][1]]] # get the last node in the closelist
+        parent = [closelist[-1][5], closelist[-1][6]] # get the parent of the last node
+
+        # loop until the parent is the start node
         while not self.is_same_location(parent[0], parent[1], -1, -1):
-            path.insert(0, parent[:])
-            _, loc = self.is_in_list(closelist, parent[0], parent[1])
-            parent = [closelist[loc][5], closelist[loc][6]]
+            path.insert(0, parent[:]) # insert the parent node at the beginning of the path
+            _, loc = self.is_in_list(closelist, parent[0], parent[1]) # get the index of the parent node
+            parent = [closelist[loc][5], closelist[loc][6]] # set the new parent node
+        
         return np.array(path)
     
 
+    # smooth the path using B-spline interpolation
+    def sample_path(self, path):
 
-    def downsample_path(self, path_meters):
-        """
-        Smooth and downsample the (x, y) path using B-spline interpolation.
-        Append constant altitude (z).
+        # number of points to sample
+        num_points = 500
         
-        Args:
-            path_meters: Nx2 array of (x, y) in meters
-            num_points: number of interpolated waypoints
-            altitude: constant altitude for each point
+        # get x and y
+        x = path[:, 0]
+        y = path[:, 1]
         
-        Returns:
-            waypoints: Nx3 array of (x, y, z)
-        """
-        num_points = 20
-        altitude = 1
-        # Extract x and y
-        x = path_meters[:, 0]
-        y = path_meters[:, 1]
-        
-        # Parameterize path by cumulative distance
+        # parameterize path by cumulative distance
         distance = np.cumsum(np.sqrt(np.diff(x, prepend=x[0])**2 + np.diff(y, prepend=y[0])**2))
-        distance = distance / distance[-1]  # Normalize to [0, 1]
+        distance = distance / distance[-1]  # normalize to [0, 1]
 
-        # Fit B-spline
+        # fit B-spline
         tck, _ = interpolate.splprep([x, y], s=0)
         
-        # Resample with fewer points
+        # resample
         u_fine = np.linspace(0, 1, num_points)
         x_smooth, y_smooth = interpolate.splev(u_fine, tck)
 
-        # Append constant z
+        # append constant z of 1m
+        altitude = 1
         z = np.ones_like(x_smooth) * altitude
+        
+        # stack x, y, z
         waypoints = np.vstack([x_smooth, y_smooth, z]).T
-        #waypoints = np.vstack([x_smooth, y_smooth]).T
 
         return waypoints
-
