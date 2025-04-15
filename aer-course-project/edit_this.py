@@ -225,7 +225,10 @@ class Controller():
         else:
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
-        trajectory_planner = bezier.Trajectory(GATE_POSITIONS,KEEP_OUT_BOXES)
+        gate_coords = list(GATE_POSITIONS)
+        np.random.shuffle(gate_coords)
+
+        trajectory_planner = bezier.Trajectory(gate_coords,KEEP_OUT_BOXES)
         traj_history = trajectory_planner.optimize_trajectory()
         bezier.animation(X_BOUNDS,Y_BOUNDS, GATE_POSITIONS, KEEP_OUT_BOXES, traj_history, 12)
 

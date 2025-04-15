@@ -15,7 +15,7 @@ import collections
 
 AVG_COLLISION_THRESHOLD = 0.001
 SAMPLE_BUFFER_SIZE = 1
-RANDOM_WALK_RANGE = 1
+RANDOM_WALK_RANGE = 3
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -128,6 +128,7 @@ class Trajectory:
 
         bias = [0.0 for gate in self._gates]
         prev_avg_collision_fraction = 1.0
+        collision_delta = 1.0
 
         while True:
             try:
@@ -153,7 +154,7 @@ class Trajectory:
                 prev_avg_collision_fraction = avg_collision_fraction
                 bias = [bias[i] * collision_delta for i in range(len(bias))]
 
-                print(f"Average collision fraction: {avg_collision_fraction}\r", end="")
+                print(f"Average collision fraction: {avg_collision_fraction: .4f}, Collision delta: {collision_delta: .4f}\r", end="")
                 if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
                     break
 
