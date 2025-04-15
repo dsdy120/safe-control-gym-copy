@@ -14,10 +14,10 @@ from matplotlib import cm
 import collections
 
 AVG_COLLISION_THRESHOLD = 0.001
-SAMPLE_BUFFER_SIZE = 3
-RANDOM_WALK_RANGE = 0.7
+SAMPLE_BUFFER_SIZE = 1
+RANDOM_WALK_RANGE = 3
 
-def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=50):
+def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
     Generates an animation of the trajectory optimization process with a frame counter.
     The `interval` parameter controls the speed of the animation (in milliseconds).
@@ -32,7 +32,7 @@ def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:l
     for gate in gate_coords:
         x, y = gate[1], gate[2]
         if gate[0]:
-            rect = Rectangle((x-0.125, y-0.125), 0.25, 0.25, color='blue')
+            rect = Rectangle((x-0.125, y-0.125), 0.25, 0.25, color='red')
         else:
             rect = Rectangle((x-0.125, y-0.125), 0.25, 0.25, color='red')
         gate_patches.append(rect)
@@ -138,7 +138,7 @@ class Trajectory:
 
                 for i, gate in enumerate(self._gates):
                     gate:Gate
-                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, bias[i])
+                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, avg_collision_fraction*bias[i])
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -292,7 +292,7 @@ class Gate:
         return step
     
 def main():
-    gate_coords = [(True, 0, 0), (False, 2, 2), (True, 4, 4)]
+    gate_coords = [(True, 0, 0), (False, 2, 2), (True, 4, 4), (False, 2, 2)] * 2
     ko_box_coords = [(0.5, 0.5, 1.5, 1.5), (2.5, 2.5, 3.5, 3.5)]
     # Add wall hit-boxes 20 units deep on all 4 sides of the play area, defined by -1,-1 and 5,5
     ko_box_coords.append((-20, -20, -1, 20)) # left wall
