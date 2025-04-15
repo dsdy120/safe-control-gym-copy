@@ -150,16 +150,19 @@ class Trajectory:
         best_avg_collision_fraction = 1.0
         collision_delta = 1.0
         best_ctrl_cfg = [0.0 for gate in self._gates]
+        ctrl_cfg_deviation = [0.0 for gate in self._gates]
         t_start = time.perf_counter()
         while True:
             if time.perf_counter() - t_start > 15:
                 print("Trajectory optimization timed out.")
                 break
             try:
-                next_bias = [0.0 for gate in self._gates]
                 for i, gate in enumerate(self._gates):
                     gate:Gate
-                    next_bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, best_ctrl_cfg[i])
+                    if gate._VERTICAL:
+                        gate.set_ctrl_points_abs(
+                            gate.get_gate_location()[0] + ctrl_cfg_deviation[i] + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE),
+                        )
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -177,7 +180,7 @@ class Trajectory:
                 avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
                 collision_delta = avg_collision_fraction - best_avg_collision_fraction
                 if collision_delta < 0:
-                    best_ctrl_cfg = next_bias.copy()
+                    best_ctrl_cfg = ctrl_cfg_deviation.copy()
                     best_avg_collision_fraction = avg_collision_fraction
 
 
