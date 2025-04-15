@@ -145,7 +145,7 @@ class Controller():
         GATE_THICKNESS = 0.05
         OBSTACLE_RADIUS = 0.06
         UNCERTAINTY_RADIUS = 0.2
-        AVOIDANCE_SAFETY_FACTOR = 1.2
+        AVOIDANCE_SAFETY_FACTOR = 1.0
         RACE_HEIGHT = 1.0
         X_BOUNDS = (-3.5, 3.5)
         Y_BOUNDS = (-3.5, 3.5)

@@ -127,14 +127,17 @@ class Trajectory:
             collision_fractions.appendleft(1)
 
         bias = [0.0 for gate in self._gates]
-        prev_avg_collision_fraction = 1.0
+        best_avg_collision_fraction = 1.0
         collision_delta = 1.0
-
+        best_bias = [0.0 for gate in self._gates]
+        j = 0
         while True:
+            j += 1
             try:
+                next_bias = [0.0 for gate in self._gates]
                 for i, gate in enumerate(self._gates):
                     gate:Gate
-                    bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, bias[i])
+                    next_bias[i] = gate.aligned_ctrl_pt_rnd_walk(RANDOM_WALK_RANGE, best_bias[i])
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -150,9 +153,11 @@ class Trajectory:
                 )
 
                 avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
-                collision_delta = avg_collision_fraction - prev_avg_collision_fraction
-                prev_avg_collision_fraction = avg_collision_fraction
-                bias = [bias[i] * collision_delta for i in range(len(bias))]
+                collision_delta = avg_collision_fraction - best_avg_collision_fraction
+                if collision_delta < 0:
+                    best_bias = next_bias.copy()
+                    best_avg_collision_fraction = avg_collision_fraction
+
 
                 print(f"Average collision fraction: {avg_collision_fraction: .4f}, Collision delta: {collision_delta: .4f}\r", end="")
                 if avg_collision_fraction < AVG_COLLISION_THRESHOLD:
