@@ -138,7 +138,12 @@ class Trajectory:
                     curr_locn[0],
                     curr_locn[1] + MIN_CTRL_DIST * sign
                 )
-            self._GATE_SIGNS.append(1.0) # designate fly through end point upwards
+
+        self._gates[-1].set_ctrl_points_abs(*self._gates[-1].get_gate_location())
+
+        for i in range(len(self._curves)):
+            print(self._gates[i].get_next_p1_abs()[0] - self._gates[i].get_gate_location()[0], end=", ")
+            print(self._gates[i].get_next_p1_abs()[1] - self._gates[i].get_gate_location()[1])
 
         for ko_box in ko_box_coords:
             self._ko_boxes.append(KeepOutBox(*ko_box))
@@ -160,31 +165,54 @@ class Trajectory:
         best_ctrl_deviation = [0.0 for gate in self._gates]
         ctrl_cfg_deviation = [0.0 for gate in self._gates]
         t_start = time.perf_counter()
-        while True:
+        while False:
             if time.perf_counter() - t_start > 15:
                 print("Trajectory optimization timed out.")
                 break
             try:
                 for i, gate in enumerate(self._gates):
                     gate:Gate
+                    gate_x = gate.get_gate_location()[0]
+                    gate_y = gate.get_gate_location()[1]
+                    gate_sign = gate_init_signs[i]
                     if gate._VERTICAL:
-                        gate.set_ctrl_points_abs(
-                            max(
-                                gate.get_gate_location()[0] + best_ctrl_deviation[i]\
-                                      + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                ,gate_init_signs[i] * MIN_CTRL_DIST
-                            ),
-                            gate.get_gate_location()[1]
-                        )
-                    else:
-                        gate.set_ctrl_points_abs(
-                            gate.get_gate_location()[0],
-                            max(
-                                gate.get_gate_location()[1] + best_ctrl_deviation[i]\
-                                      + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                ,gate_init_signs[i] * MIN_CTRL_DIST
+                        if gate_sign > 0:
+                            gate.set_ctrl_points_abs(
+                                max(
+                                    gate_x + best_ctrl_deviation[i]\
+                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                    ,(1)*MIN_CTRL_DIST
+                                )
+                                ,gate_y
                             )
-                        )
+                        else:
+                            gate.set_ctrl_points_abs(
+                                min(
+                                    gate_x + best_ctrl_deviation[i]\
+                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                    ,(-1)*MIN_CTRL_DIST
+                                )
+                                ,gate_y
+                            )
+                    else:
+                        if gate_sign > 0:
+                            gate.set_ctrl_points_abs(
+                                gate_x
+                                ,max(
+                                    gate_y + best_ctrl_deviation[i]\
+                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                    ,(1) * MIN_CTRL_DIST
+                                )
+                            )
+                        else:
+                            gate.set_ctrl_points_abs(
+                                gate_x
+                                ,min(
+                                    gate_y + best_ctrl_deviation[i]\
+                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                                    ,(-1)*MIN_CTRL_DIST
+                                )
+                            )
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)

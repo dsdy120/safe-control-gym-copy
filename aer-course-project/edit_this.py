@@ -248,8 +248,6 @@ class Controller():
         for i in trajectory:
             i.append(RACE_HEIGHT)
 
-        trajectory[-1][-1] = UNCERTAINTY_RADIUS
-
         waypoints.extend(trajectory)
 
         # Polynomial fit.
@@ -349,7 +347,7 @@ class Controller():
         # elif iteration == 23*self.CTRL_FREQ:
         #     x = -0.5
         #     y = 2.0
-        #     z = 1.0
+        #     z = 2.0
         #     yaw = 0.
         #     duration = 0
 
