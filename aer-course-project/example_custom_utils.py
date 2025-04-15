@@ -78,11 +78,11 @@ def update_map(M, path, gate_num, gate_coord):
     
     if gate_num == 1 or gate_num == 3:
         x = gate_coord[0] + (path[-2][0]-gate_coord[0])
-        M[x:(x+1), gate_coord[1]] = 1
+        M[x, gate_coord[1]] = 1
 
     else:
         y = gate_coord[1] + (path[-2][1]-gate_coord[1])
-        M[gate_coord[0], y:(y+1)] = 1
+        M[gate_coord[0], y] = 1
 
     return M
 
@@ -129,7 +129,6 @@ class path_planning():
             np.array([round((0+3.5)/res), round((0.2+3.5)/res)]),      # gate_3
             np.array([round((-0.5+3.5)/res), round((1.5+3.5)/res)])    # gate_4
         ]
-        print(self.gate_coord)
 
         # set start and end coordinates
         self.start = np.array([int((-1+3.5)/res), int((-3+3.5)/res)])
@@ -161,14 +160,19 @@ class path_planning():
                 start = self.gate_coord[self.gate_order[i-1] - 1] # set start of path segment
                 end = self.gate_coord[self.gate_order[i] - 1] # set end of path segment
 
+            if np.array_equal(start, end):
+                path = self.same_gate(start, path, M_updated, M, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1])
+
             # run A* algorithm to find optimal path segment
-            path = self.A_star(start, end, M_updated)
+            else:
+                path = self.A_star(start, end, M_updated)
 
             # close one side of gate so that drone passes through the gate
             if i!=len(self.gate_order):
                 M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
 
             #path = self.sample_path(path) # smooth the path
+            plot_map(M_updated, self.res, path)
             
             x = path[:, 0] # get x
             y = path[:, 1] # get y
@@ -181,6 +185,26 @@ class path_planning():
         full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
         
         return full_path
+    
+    # find path for path where start and end are the same gates
+    def same_gate(self, start, path, M_updated, M, gate_num, gate_coord):
+
+        # set the end point
+        if gate_num == 1 or gate_num == 3:
+            x = gate_coord[0] + (2*(path[-2][0]-gate_coord[0]))
+            end = np.array([int(x), int(gate_coord[1])])
+
+        else:
+            y = gate_coord[1] + (2*(path[-2][1]-gate_coord[1]))
+            end = np.array([int(gate_coord[0]), int(y)])
+
+        
+        path1 = self.A_star(start, end, M_updated) # find the first path
+        path2 = self.A_star(end, start, M) # find the second path   
+        path = np.concatenate((path1, path2), axis=0) # concatenate the two paths
+
+        return path
+        
         
     def A_star(self, path_start, path_end, M):
     
