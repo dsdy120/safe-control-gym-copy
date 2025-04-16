@@ -22,10 +22,26 @@ def map_generation(res, obs):
     M = np.zeros((NN, NN), dtype=int) # initialize map with zeros (free)
 
     # set obstacles if true
+    w = round(0.3/res)
+
     if obs == 1:
         obs = np.array([[1.5, -2.5], [0.5,-1], [1.5,0], [-1,0]])
         for _, coord in enumerate(obs):
-            M[round((coord[0]-0.26+3.5)/res):round((coord[0]+0.26+3.5)/res), round((coord[1]-0.26+3.5)/res):round((coord[1]+0.26+3.5)/res)] = 1
+            x = round((coord[0]+3.5)/res)
+            y = round((coord[1]+3.5)/res)
+            
+            M[(x-w):(x+w), (y-w):(y+w)] = 1
+
+            """M[(x-w+1):(x+w-1), (y+w)] = 1
+            M[(x-w+1):(x+w-1), (y-w-1)] = 1
+            M[(x+w), (y-w+1):(y+w-1)] = 1
+            M[(x-w-1), (y-w+1):(y+w-1)] = 1
+
+            M[(x-w+2):(x+w-2), (y+w+1)] = 1
+            M[(x-w+2):(x+w-2), (y-w-2)] = 1
+            M[(x+w+1), (y-w+2):(y+w-2)] = 1
+            M[(x-w-2), (y-w+2):(y+w-2)] = 1"""
+
     
     # set gates
     gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
@@ -171,20 +187,19 @@ class path_planning():
             if i!=len(self.gate_order):
                 M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
 
-            #path = self.sample_path(path) # smooth the path
-            plot_map(M_updated, self.res, path)
-            
-            x = path[:, 0] # get x
-            y = path[:, 1] # get y
-            altitude = 1 # append constant z of 1m
-            z = np.ones_like(x) * (altitude+3.5)/self.res # get z           
-            path = np.vstack([x, y, z]).T # stack x, y, z
+            path = self.sample_path(path) # smooth the path
+
+            #x = path[:, 0] # get x
+            #y = path[:, 1] # get y
+            #altitude = 1 # append constant z of 1m
+            #z = np.ones_like(x) * (altitude+3.5)/self.res # get z           
+            #path = np.vstack([x, y, z]).T # stack x, y, z
             
             path_segments.append(path) # store the entire path
 
         full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
         
-        return full_path
+        return full_path, path_segments
     
     # find path for path where start and end are the same gates
     def same_gate(self, start, path, M_updated, M, gate_num, gate_coord):

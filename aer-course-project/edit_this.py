@@ -137,11 +137,10 @@ class Controller():
         gate_order = np.array([1, 2, 3, 4, 0, 0])
         gate_order[-2:] = np.random.randint(1,5, size=2)
         np.random.shuffle(gate_order)
-        print(gate_order)
+        print("[Gate Order]:", gate_order)
 
-        path = ecu.path_planning(res, gate_order, obs).run_Astar()
+        path, segments = ecu.path_planning(res, gate_order, obs).run_Astar()
         
-
         M = ecu.map_generation(res, obs)
         ecu.plot_map(M, res, path)
 
@@ -160,33 +159,31 @@ class Controller():
         waypoints.append((-0.5,  2.0, 2.0))
         waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])"""
 
-        real_path = []
-        for point in path:
-            # Convert from grid coordinates back to real-world (meters)
-            # The conversion is: grid_x = (real_x + 3.5)/res, grid_y = (real_y + 3.5)/res
-            # So: real_x = grid_x*res - 3.5, reasl_y = grid_y*res - 3.5
-            real_x = point[0]*res - 3.5
-            real_y = point[1]*res - 3.5
-            real_z = 1.0  # z-coordinate is already in the right scale
-            real_path.append([real_x, real_y, real_z])
-        
-        # Store waypoints for trajectory generation
-        self.waypoints = np.array(real_path)
+        smooth_segments = []
+        for seg in segments:
+            real_path = np.array([[p[0]*res - 3.5, p[1]*res - 3.5, 1.0] for p in seg])
 
-        # Store waypoints for trajectory generation
-        # self.waypoints = waypoints
+            deg = 100
+            t = np.arange(real_path.shape[0])
+            fx = np.poly1d(np.polyfit(t, real_path[:, 0], deg))
+            fy = np.poly1d(np.polyfit(t, real_path[:, 1], deg))
+            fz = np.poly1d(np.polyfit(t, real_path[:, 2], deg))
 
-        # Polynomial fit.
-        deg = 120
-        t = np.arange(self.waypoints.shape[0])
-        fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
-        fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
-        fz = np.poly1d(np.polyfit(t, self.waypoints[:,2], deg))
+            t_smooth = np.linspace(t[0], t[-1], 50)
+            x = fx(t_smooth)
+            y = fy(t_smooth)
+            z = fz(t_smooth)
+
+            smooth_seg = np.vstack([x, y, z]).T
+            smooth_segments.append(smooth_seg)
+
+        smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
+        self.waypoints = smooth_path
         duration = 15
-        t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ))
-        self.ref_x = fx(t_scaled)
-        self.ref_y = fy(t_scaled)
-        self.ref_z = fz(t_scaled)
+        t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(duration*self.CTRL_FREQ))
+        self.ref_x = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 0])
+        self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
+        self.ref_z = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 2])
 
         #########################
         # REPLACE THIS (END) ####
