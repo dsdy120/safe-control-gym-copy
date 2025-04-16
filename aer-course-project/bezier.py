@@ -14,10 +14,10 @@ from matplotlib import colors
 from matplotlib import cm
 import collections
 
-AVG_COLLISION_THRESHOLD = 0.002
+AVG_COLLISION_THRESHOLD = 0.001
 SAMPLE_BUFFER_SIZE = 1
-RANDOM_WALK_RANGE = 1
-MIN_CTRL_DIST = 1.0
+RANDOM_WALK_RANGE = 0.5
+MIN_CTRL_DIST = 0.5
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -155,42 +155,43 @@ class Trajectory:
     
     def optimize_trajectory(self):
         collision_fractions = collections.deque(maxlen=SAMPLE_BUFFER_SIZE)
-        for i in range(SAMPLE_BUFFER_SIZE):
+        for gate in range(SAMPLE_BUFFER_SIZE):
             collision_fractions.appendleft(1)
 
         gate_init_signs = self._GATE_SIGNS.copy()
 
         best_avg_collision_fraction = 1.0
         collision_delta = 1.0
-        best_ctrl_deviation = [0.0 for gate in self._gates]
-        ctrl_cfg_deviation = [0.0 for gate in self._gates]
+        best_ctrl_deviation = [0.0 for gate in self._gates[:-1]]
+        ctrl_cfg_deviation = [0.0 for gate in self._gates[:-1]]
         t_start = time.perf_counter()
         while True:
             if time.perf_counter() - t_start > 15:
                 print("Trajectory optimization timed out.")
                 break
             try:
-                i = np.random.choice(len(self._gates)-1)
+                ctrl_cfg_deviation = [i for i in best_ctrl_deviation]
+                i = np.random.randint(len(self._gates)-1)
                 gate:Gate = self._gates[i]
                 gate_x = gate.get_gate_location()[0]
                 gate_y = gate.get_gate_location()[1]
                 
+                ctrl_cfg_deviation[i] = best_ctrl_deviation[i] + np.random.normal(0, RANDOM_WALK_RANGE)
+
                 if gate._VERTICAL:
                     gate.set_ctrl_points_abs(                                                                                       
-                        max(
-                            gate_x + best_ctrl_deviation[i]\
-                                + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                            ,(1)*MIN_CTRL_DIST
+                        gate_x + np.sign(ctrl_cfg_deviation[i])*max(
+                            abs(ctrl_cfg_deviation[i])
+                            ,MIN_CTRL_DIST
                         )
                         ,gate_y
                     )
                 else:
                     gate.set_ctrl_points_abs(
                         gate_x
-                        ,max(
-                            gate_y + best_ctrl_deviation[i]\
-                                + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                            ,(1) * MIN_CTRL_DIST
+                        ,gate_y + np.sign(ctrl_cfg_deviation[i])*max(
+                            abs(ctrl_cfg_deviation[i])
+                            ,MIN_CTRL_DIST
                         )
                     )
 
@@ -208,9 +209,8 @@ class Trajectory:
                 )
 
                 avg_collision_fraction = sum(collision_fractions) / len(collision_fractions)
-                collision_delta = avg_collision_fraction - best_avg_collision_fraction
-                if collision_delta < 0:
-                    best_ctrl_deviation = ctrl_cfg_deviation.copy()
+                if avg_collision_fraction < best_avg_collision_fraction:
+                    best_ctrl_deviation = [i for i in ctrl_cfg_deviation]
                     best_avg_collision_fraction = avg_collision_fraction
 
 
@@ -221,6 +221,24 @@ class Trajectory:
             except KeyboardInterrupt:
                 print("Trajectory optimization interrupted.")
                 break
+
+        for i,gate in enumerate(self._gates[:-1]):
+            if gate._VERTICAL:
+                gate.set_ctrl_points_abs(                                                                                       
+                    gate_x + best_ctrl_deviation[i]
+                    ,gate_y
+                )
+            else:
+                gate.set_ctrl_points_abs(
+                    gate_x
+                    ,gate_y + best_ctrl_deviation[i]
+                )
+        
+        self._traj_history.append(
+            [curve.get_all_ctrl_points() for curve in self._curves]
+        )
+        print(f"Final average collision fraction: {avg_collision_fraction: .4f}, Collision delta: {collision_delta: .4f}")
+        print(f"Final control offsets: {best_ctrl_deviation}")
 
         return self._traj_history
     
@@ -286,7 +304,7 @@ class BezierCurve:
         '''
         Checks the proportion of the bezier curve that is inside the ko_box
         '''
-        num_points = 1000
+        num_points = 300
         fraction = 0
         for t in range(num_points+1):
             t /= num_points
@@ -342,7 +360,9 @@ class Gate:
         self.set_ctrl_points_abs(abs_x, abs_y)
 
     def set_ctrl_points_abs(self, abs_x:float, abs_y:float):
-        self._previous_curve.set_p2((2*self._X - abs_x , 2*self._Y - abs_y))
+        offset_x = abs_x - self._X
+        offset_y = abs_y - self._Y
+        self._previous_curve.set_p2((self._X - offset_x, self._Y - offset_y))
         self._next_curve.set_p1((abs_x, abs_y))
         
     def get_point(self, t):

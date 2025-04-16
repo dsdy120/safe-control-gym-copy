@@ -43,6 +43,7 @@ except ImportError:
 # Optionally, create and import modules you wrote.
 # Please refrain from importing large or unstable 3rd party packages.
 try:
+    from scipy.interpolate import interp1d
     import bezier
 except ImportError:
     # PyTest import.
@@ -254,10 +255,10 @@ class Controller():
         self.waypoints = np.array(waypoints)
         deg = 100
         t = np.arange(self.waypoints.shape[0])
-        fx = np.poly1d(np.polyfit(t, self.waypoints[:,0], deg))
-        fy = np.poly1d(np.polyfit(t, self.waypoints[:,1], deg))
-        fz = np.poly1d(np.polyfit(t, self.waypoints[:,2], deg))
-        duration = 15
+        fx = interp1d(t, self.waypoints[:,0], 'cubic')
+        fy = interp1d(t, self.waypoints[:,1], 'cubic')
+        fz = interp1d(t, self.waypoints[:,2], 'cubic')
+        duration = len(self.waypoints) * 0.1
         t_scaled = np.linspace(t[0], t[-1], int(duration*self.CTRL_FREQ))
         self.ref_x = fx(t_scaled)
         self.ref_y = fy(t_scaled)
