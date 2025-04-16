@@ -231,8 +231,8 @@ class Controller():
             waypoints = [(self.initial_obs[0], self.initial_obs[2], self.initial_obs[4])]
 
         gate_indices = [i for i in range(len(GATE_POSITIONS))] # List of gate indices to be visited
-        # gate_indices = gate_indices + np.random.choice(gate_indices, size=2, replace=False).tolist() # Randomly select 2 gates to be visited twice
-        # np.random.shuffle(gate_indices) # Shuffle the list of gate indices
+        gate_indices = gate_indices + np.random.choice(gate_indices, size=2, replace=False).tolist() # Randomly select 2 gates to be visited twice
+        np.random.shuffle(gate_indices) # Shuffle the list of gate indices
 
         gate_coords = [(True,START_X,START_Y)]
         for i in gate_indices:

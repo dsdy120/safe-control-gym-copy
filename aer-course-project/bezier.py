@@ -17,7 +17,7 @@ import collections
 AVG_COLLISION_THRESHOLD = 0.002
 SAMPLE_BUFFER_SIZE = 1
 RANDOM_WALK_RANGE = 1
-MIN_CTRL_DIST = 0.5
+MIN_CTRL_DIST = 1.0
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
     """
@@ -165,54 +165,34 @@ class Trajectory:
         best_ctrl_deviation = [0.0 for gate in self._gates]
         ctrl_cfg_deviation = [0.0 for gate in self._gates]
         t_start = time.perf_counter()
-        while False:
+        while True:
             if time.perf_counter() - t_start > 15:
                 print("Trajectory optimization timed out.")
                 break
             try:
-                for i, gate in enumerate(self._gates):
-                    gate:Gate
-                    gate_x = gate.get_gate_location()[0]
-                    gate_y = gate.get_gate_location()[1]
-                    gate_sign = gate_init_signs[i]
-                    if gate._VERTICAL:
-                        if gate_sign > 0:
-                            gate.set_ctrl_points_abs(
-                                max(
-                                    gate_x + best_ctrl_deviation[i]\
-                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                    ,(1)*MIN_CTRL_DIST
-                                )
-                                ,gate_y
-                            )
-                        else:
-                            gate.set_ctrl_points_abs(
-                                min(
-                                    gate_x + best_ctrl_deviation[i]\
-                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                    ,(-1)*MIN_CTRL_DIST
-                                )
-                                ,gate_y
-                            )
-                    else:
-                        if gate_sign > 0:
-                            gate.set_ctrl_points_abs(
-                                gate_x
-                                ,max(
-                                    gate_y + best_ctrl_deviation[i]\
-                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                    ,(1) * MIN_CTRL_DIST
-                                )
-                            )
-                        else:
-                            gate.set_ctrl_points_abs(
-                                gate_x
-                                ,min(
-                                    gate_y + best_ctrl_deviation[i]\
-                                        + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
-                                    ,(-1)*MIN_CTRL_DIST
-                                )
-                            )
+                i = np.random.choice(len(self._gates)-1)
+                gate:Gate = self._gates[i]
+                gate_x = gate.get_gate_location()[0]
+                gate_y = gate.get_gate_location()[1]
+                
+                if gate._VERTICAL:
+                    gate.set_ctrl_points_abs(                                                                                       
+                        max(
+                            gate_x + best_ctrl_deviation[i]\
+                                + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                            ,(1)*MIN_CTRL_DIST
+                        )
+                        ,gate_y
+                    )
+                else:
+                    gate.set_ctrl_points_abs(
+                        gate_x
+                        ,max(
+                            gate_y + best_ctrl_deviation[i]\
+                                + np.random.uniform(-RANDOM_WALK_RANGE, RANDOM_WALK_RANGE)
+                            ,(1) * MIN_CTRL_DIST
+                        )
+                    )
 
                 indiv_collision_fractions = [
                     curve.check_collision_fraction(ko_box)
@@ -248,7 +228,7 @@ class Trajectory:
         trajectory = []
         for curve in self._curves:
             # interpolate between points
-            for t in np.linspace(0, 1, 50):
+            for t in np.linspace(0, 1, 100):
                 x, y = curve.get_point(t)
                 trajectory.append([x, y])
         return trajectory
