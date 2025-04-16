@@ -134,9 +134,9 @@ class Controller():
         obs = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
-        gate_order = np.array([1, 2, 3, 4, 1, 2])
-        # gate_order[-2:] = np.random.randint(1,5, size=2)
-        # np.random.shuffle(gate_order)
+        gate_order = np.array([1, 2, 3, 4, 0, 0])
+        gate_order[-2:] = np.random.randint(1,5, size=2)
+        np.random.shuffle(gate_order)
         print(gate_order)
 
         path = ecu.path_planning(res, gate_order, obs).run_Astar()
