@@ -16,7 +16,7 @@ import collections
 
 AVG_COLLISION_THRESHOLD = 0.001
 SAMPLE_BUFFER_SIZE = 1
-RANDOM_WALK_RANGE = 0.5
+RANDOM_WALK_RANGE = 2
 MIN_CTRL_DIST = 0.5
 
 def animation(x_lim, y_lim, gate_coords:list, ko_box_coords:list, traj_history:list, interval=16):
@@ -164,6 +164,7 @@ class Trajectory:
         collision_delta = 1.0
         best_ctrl_deviation = [0.0 for gate in self._gates[:-1]]
         ctrl_cfg_deviation = [0.0 for gate in self._gates[:-1]]
+        best_ctrl_points = [curve.get_all_ctrl_points() for curve in self._curves]
         t_start = time.perf_counter()
         while True:
             if time.perf_counter() - t_start > 15:
@@ -212,6 +213,7 @@ class Trajectory:
                 if avg_collision_fraction < best_avg_collision_fraction:
                     best_ctrl_deviation = [i for i in ctrl_cfg_deviation]
                     best_avg_collision_fraction = avg_collision_fraction
+                    best_ctrl_points = self._traj_history[-1]
 
 
                 print(f"Average collision fraction: {avg_collision_fraction: .4f}, Collision delta: {collision_delta: .4f}\r", end="")
@@ -223,20 +225,12 @@ class Trajectory:
                 break
 
         for i,gate in enumerate(self._gates[:-1]):
-            if gate._VERTICAL:
-                gate.set_ctrl_points_abs(                                                                                       
-                    gate_x + best_ctrl_deviation[i]
-                    ,gate_y
-                )
-            else:
-                gate.set_ctrl_points_abs(
-                    gate_x
-                    ,gate_y + best_ctrl_deviation[i]
-                )
+            gate.set_ctrl_points_abs(                                                                                       
+                best_ctrl_points[i][1][0]
+                ,best_ctrl_points[i][1][1]
+            )
         
-        self._traj_history.append(
-            [curve.get_all_ctrl_points() for curve in self._curves]
-        )
+        self._traj_history.append(best_ctrl_points)
         print(f"Final average collision fraction: {avg_collision_fraction: .4f}, Collision delta: {collision_delta: .4f}")
         print(f"Final control offsets: {best_ctrl_deviation}")
 
