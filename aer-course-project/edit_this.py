@@ -131,7 +131,7 @@ class Controller():
         #ecu.exampleFunction()
 
         res = 0.1 # set resolution of the map
-        obs = 1 # set obstacles (1:True, 0:False)
+        obs = 0 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
         gate_order = np.array([1, 2, 3, 4, 0, 0])
