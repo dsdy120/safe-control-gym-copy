@@ -15,6 +15,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+GATE1_X = 0.5
+GATE1_Y = -2.5
+GATE2_X = 2.0 - 0.2
+GATE2_Y = -1.5
+GATE3_X = 0
+GATE3_Y = 0.2
+GATE4_X = -0.5
+GATE4_Y = 1.5
+
+
 # generate map with obstacles (1) and free space (0)
 def map_generation(res, obs):
     
@@ -47,8 +57,8 @@ def map_generation(res, obs):
 
     
     # set gates
-    gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
-    gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
+    gate_vertical = np.array([[GATE1_X, GATE1_Y], [GATE3_X,GATE3_Y]])   
+    gate_horizontal = np.array([[GATE2_X, GATE2_Y], [GATE4_X, GATE4_Y]]) 
 
     t = 3 # thickness of the gate
 
@@ -121,8 +131,8 @@ def plot_map(M, res, path1):
     plt.plot((-1+3.5)/res, (-3+3.5)/res, 'go', label='Start')
     plt.plot((-0.5+3.5)/res, (2+3.5)/res, 'ro', label='End')
     
-    x = np.array([(0.5+3.5)/res, (2.0+3.5)/res, 3.5/res, (-0.5+3.5)/res])
-    y = np.array([(-2.5+3.5)/res, (-1.5+3.5)/res, (0.2+3.5)/res, (1.5+3.5)/res])
+    x = np.array([(GATE1_X+3.5)/res, (GATE2_X+3.5)/res, (GATE3_X + 3.5)/res, (GATE4_X+3.5)/res])
+    y = np.array([(GATE1_Y+3.5)/res, (GATE2_Y+3.5)/res, (GATE3_Y+3.5)/res, (GATE4_Y+3.5)/res])
     plt.plot(x, y, 'r*', label='Gates')
 
     plt.grid(True)
@@ -141,11 +151,12 @@ class path_planning():
         self.gate_order = gate_order
         
         # calculate coordinates of gates
+
         self.gate_coord = [
-            np.array([round((0.5+3.5)/res), round((-2.5+3.5)/res)]),   # gate_1
-            np.array([round((2.0+3.5)/res), round((-1.5+3.5)/res)]),   # gate_2
-            np.array([round((0+3.5)/res), round((0.2+3.5)/res)]),      # gate_3
-            np.array([round((-0.5+3.5)/res), round((1.5+3.5)/res)])    # gate_4
+            np.array([round((GATE1_X+3.5)/res), round((GATE1_Y+3.5)/res)]),   # gate_1
+            np.array([round((GATE2_X+3.5)/res), round((GATE2_Y+3.5)/res)]),   # gate_2
+            np.array([round((GATE3_X+3.5)/res), round((GATE3_Y+3.5)/res)]),      # gate_3
+            np.array([round((GATE4_X+3.5)/res), round((GATE4_Y+3.5)/res)])    # gate_4
         ]
 
         # set start and end coordinates

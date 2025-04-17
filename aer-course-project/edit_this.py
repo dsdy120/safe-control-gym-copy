@@ -49,6 +49,8 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
+DURATION = 30
+
 #########################
 # REPLACE THIS (END) ####
 #########################
@@ -131,12 +133,12 @@ class Controller():
         #ecu.exampleFunction()
 
         res = 0.1 # set resolution of the map
-        obs = 0 # set obstacles (1:True, 0:False)
+        obs = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
-        gate_order = np.array([1, 2, 3, 4, 0, 0])
-        gate_order[-2:] = np.random.randint(1,5, size=2)
-        np.random.shuffle(gate_order)
+        gate_order = np.array([4,2,3,1,4,2])
+        # gate_order[-2:] = np.random.randint(1,5, size=2)
+        # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
 
         path, segments = ecu.path_planning(res, gate_order, obs).run_Astar()
@@ -179,7 +181,7 @@ class Controller():
 
         smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
         self.waypoints = smooth_path
-        self._duration = 60
+        self._duration = DURATION
         t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(self._duration*self.CTRL_FREQ))
         self.ref_x = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 0])
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
@@ -281,7 +283,7 @@ class Controller():
 
         elif iteration == (self._duration+10)*self.CTRL_FREQ:
             height = 0.
-            duration = 0
+            duration = 2
 
             command_type = Command(3)  # Land.
             args = [height, duration]
