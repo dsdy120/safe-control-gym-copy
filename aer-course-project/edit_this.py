@@ -179,7 +179,7 @@ class Controller():
 
         smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
         self.waypoints = smooth_path
-        self._duration = 30
+        self._duration = 60
         t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(self._duration*self.CTRL_FREQ))
         self.ref_x = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 0])
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
