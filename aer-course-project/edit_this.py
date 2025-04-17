@@ -179,8 +179,8 @@ class Controller():
 
         smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
         self.waypoints = smooth_path
-        duration = 15
-        t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(duration*self.CTRL_FREQ))
+        self._duration = 30
+        t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(self._duration*self.CTRL_FREQ))
         self.ref_x = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 0])
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
         self.ref_z = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 2])
@@ -238,9 +238,10 @@ class Controller():
 
             command_type = Command(2)  # Take-off.
             args = [height, duration]
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         # [INSTRUCTIONS] Example code for using cmdFullState interface   
-        elif iteration >= 3*self.CTRL_FREQ and iteration < 20*self.CTRL_FREQ:
+        elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
             step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
             target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
             target_vel = np.zeros(3)
@@ -250,21 +251,23 @@ class Controller():
 
             command_type = Command(1)  # cmdFullState.
             args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
-        elif iteration == 20*self.CTRL_FREQ:
+        elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
-       # [INSTRUCTIONS] Example code for using goTo interface 
-        elif iteration == 20*self.CTRL_FREQ+1:
-            x = self.ref_x[-1]
-            y = self.ref_y[-1]
-            z = self.ref_z[-1]
-            yaw = 0.
-            duration = 0
+    #    # [INSTRUCTIONS] Example code for using goTo interface 
+    #     elif iteration == 20*self.CTRL_FREQ+1:
+    #         x = self.ref_x[-1]
+    #         y = self.ref_y[-1]
+    #         z = self.ref_z[-1]
+    #         yaw = 0.
+    #         duration = 30
 
-            command_type = Command(5)  # goTo.
-            args = [[x, y, z], yaw, duration, False]
+    #         command_type = Command(5)  # goTo.
+    #         args = [[x, y, z], yaw, duration, False]
 
         # elif iteration == 23*self.CTRL_FREQ:
         #     x = self.initial_obs[0]
@@ -276,20 +279,23 @@ class Controller():
         #     command_type = Command(5)  # goTo.
         #     args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == 30*self.CTRL_FREQ:
+        elif iteration == (self._duration+10)*self.CTRL_FREQ:
             height = 0.
             duration = 0
 
             command_type = Command(3)  # Land.
             args = [height, duration]
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
-        elif iteration == 33*self.CTRL_FREQ-1:
+        elif iteration == (self._duration+18)*self.CTRL_FREQ:
             command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
             args = []
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         else:
             command_type = Command(0)  # None.
             args = []
+            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         #########################
         # REPLACE THIS (END) ####
