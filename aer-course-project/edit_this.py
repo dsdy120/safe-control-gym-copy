@@ -179,7 +179,7 @@ class Controller():
 
         smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
         self.waypoints = smooth_path
-        duration = 15
+        duration = 30
         t_scaled = np.linspace(0, smooth_path.shape[0]-1, int(duration*self.CTRL_FREQ))
         self.ref_x = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 0])
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
@@ -261,20 +261,20 @@ class Controller():
             y = self.ref_y[-1]
             z = self.ref_z[-1]
             yaw = 0.
-            duration = 0
+            duration = 1
 
             command_type = Command(5)  # goTo.
             args = [[x, y, z], yaw, duration, False]
 
-        # elif iteration == 23*self.CTRL_FREQ:
-        #     x = self.initial_obs[0]
-        #     y = self.initial_obs[2]
-        #     z = 1.5
-        #     yaw = 0.
-        #     duration = 6
+        elif iteration == 23*self.CTRL_FREQ:
+            x = self.initial_obs[0]
+            y = self.initial_obs[2]
+            z = 2.0
+            yaw = 0.
+            duration = 0
 
-        #     command_type = Command(5)  # goTo.
-        #     args = [[x, y, z], yaw, duration, False]
+            command_type = Command(5)  # goTo.
+            args = [[x, y, z], yaw, duration, False]
 
         elif iteration == 30*self.CTRL_FREQ:
             height = 0.
