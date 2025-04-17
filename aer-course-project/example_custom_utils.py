@@ -26,9 +26,12 @@ def map_generation(res, obs):
 
     if obs == 1:
         obs = np.array([[1.5, -2.5], [0.5,-1], [1.5,0], [-1,0]])
-        for _, coord in enumerate(obs):
+        for i, coord in enumerate(obs):
             x = round((coord[0]+3.5)/res)
             y = round((coord[1]+3.5)/res)
+            
+            if i==3:
+                w = round(0.4/res)
             
             M[(x-w):(x+w), (y-w):(y+w)] = 1
 
@@ -91,7 +94,6 @@ def map_generation(res, obs):
 
 # update map by closing the gate on the side the drone entered
 def update_map(M, path, gate_num, gate_coord):
-    
     if gate_num == 1 or gate_num == 3:
         x = gate_coord[0] + (path[-2][0]-gate_coord[0])
         M[x, gate_coord[1]] = 1
@@ -187,15 +189,15 @@ class path_planning():
             if i!=len(self.gate_order):
                 M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
 
-            path = self.sample_path(path) # smooth the path
+            path_smooth = self.sample_path(path) # smooth the path
 
             #x = path[:, 0] # get x
             #y = path[:, 1] # get y
             #altitude = 1 # append constant z of 1m
             #z = np.ones_like(x) * (altitude+3.5)/self.res # get z           
-            #path = np.vstack([x, y, z]).T # stack x, y, z
+            #path_smooth = np.vstack([x, y, z]).T # stack x, y, z
             
-            path_segments.append(path) # store the entire path
+            path_segments.append(path_smooth) # store the entire path
 
         full_path = np.vstack([seg if i == 0 else seg[1:] for i, seg in enumerate(path_segments)])  # avoid duplicates
         
@@ -336,6 +338,10 @@ class path_planning():
     # smooth the path using B-spline interpolation
     def sample_path(self, path):
 
+        _, idx = np.unique(path, axis=0, return_index=True)
+        path = path[np.sort(idx)]
+
+        
         # number of points to sample
         num_points = 500
         
