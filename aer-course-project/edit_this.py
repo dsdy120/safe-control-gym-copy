@@ -236,7 +236,7 @@ class Controller():
 
         if iteration == 0:
             height = 1
-            duration = 2
+            duration = 5
 
             command_type = Command(2)  # Take-off.
             args = [height, duration]
@@ -283,7 +283,7 @@ class Controller():
 
         elif iteration == (self._duration+10)*self.CTRL_FREQ:
             height = 0.
-            duration = 2
+            duration = 5
 
             command_type = Command(3)  # Land.
             args = [height, duration]
