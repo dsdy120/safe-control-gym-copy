@@ -47,7 +47,7 @@ def map_generation(res, obs):
     gate_vertical = np.array([[0.5, -2.5], [0,0.2]])   
     gate_horizontal = np.array([[2.0,-1.5], [-0.5,1.5]]) 
 
-    t = 3 # thickness of the gate
+    t = 4 # thickness of the gate
 
     # create obstacles around gates (determined experimentally)
     for i, coord in enumerate(gate_vertical):
@@ -345,7 +345,7 @@ class path_planning():
         
         # parameterize path by cumulative distance
         distance = np.cumsum(np.sqrt(np.diff(x, prepend=x[0])**2 + np.diff(y, prepend=y[0])**2))
-        distance = distance / distance[-1]  # normalize to [0, 1]
+        distance = distance / distance[-1] if distance[-1] else 0  # normalize to [0, 1]
 
         # fit B-spline
         tck, _ = interpolate.splprep([x, y], s=0)
