@@ -17,10 +17,10 @@ from scipy import interpolate
 
 GATE1_X = 0.5
 GATE1_Y = -2.5
-GATE2_X = 2.0 - 0.2
+GATE2_X = 2.0
 GATE2_Y = -1.5
 GATE3_X = 0
-GATE3_Y = 0.2
+GATE3_Y = 0.5
 GATE4_X = -0.5
 GATE4_Y = 1.5
 
