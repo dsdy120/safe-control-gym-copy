@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 30
+DURATION = 60
 
 #########################
 # REPLACE THIS (END) ####
@@ -136,7 +136,9 @@ class Controller():
         obs = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
-        gate_order = np.array([4,2,3,1,4,2])
+        #
+        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        #gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -187,6 +189,13 @@ class Controller():
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
         self.ref_z = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 2])
 
+        dist = 0
+        prev = self.waypoints[0]
+        for point in self.waypoints:
+            dist += np.linalg.norm(point - prev)
+            prev = point
+
+        print("[Distance]:", dist)
         #########################
         # REPLACE THIS (END) ####
         #########################
