@@ -49,7 +49,9 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 20
+DURATION = 60
+with open("log.txt", "w") as f:
+    pass
 
 #########################
 # REPLACE THIS (END) ####
@@ -119,7 +121,7 @@ class Controller():
         plot_trajectory(t_scaled, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
         # Draw the trajectory on PyBullet's GUI.
-        draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+        # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
 
     def planning(self, use_firmware, initial_info):
@@ -137,8 +139,8 @@ class Controller():
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
-        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        #gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -260,8 +262,9 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
 
-            command_type = Command(5)  # cmdFullState.
-            args = [target_pos, target_yaw, 0, False]
+            command_type = Command(1)  # cmdFullState.
+            # args = [target_pos, target_yaw, 0, False]
+            args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
             print(f"Iteration: {iteration}, Command Type: {command_type}")
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
             print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
