@@ -135,7 +135,7 @@ class Controller():
         #ecu.exampleFunction()
 
         res = 0.1 # set resolution of the map
-        obs = 1 # set obstacles (1:True, 0:False)
+        obstacles_enabled = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
@@ -145,9 +145,9 @@ class Controller():
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
 
-        path, segments = ecu.path_planning(res, gate_order, obs).run_Astar()
+        path, segments = ecu.path_planning(res, gate_order, obstacles_enabled).run_Astar()
         
-        M = ecu.map_generation(res, obs)
+        M = ecu.map_generation(res, obstacles_enabled)
         ecu.plot_map(M, res, path)
 
         # initial waypoint
@@ -269,7 +269,7 @@ class Controller():
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
             print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
             with open("log.txt", "a") as f:
-                f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])}\n")
+                f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
 
         elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
