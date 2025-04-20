@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 60
+DURATION = 20
 
 #########################
 # REPLACE THIS (END) ####
@@ -260,9 +260,13 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
 
-            command_type = Command(1)  # cmdFullState.
-            args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
+            command_type = Command(5)  # cmdFullState.
+            args = [target_pos, target_yaw, 0, False]
             print(f"Iteration: {iteration}, Command Type: {command_type}")
+            # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
+            print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
+            with open("log.txt", "a") as f:
+                f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])}\n")
 
         elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
