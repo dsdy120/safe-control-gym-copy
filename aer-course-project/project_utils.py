@@ -320,11 +320,11 @@ def draw_trajectory(initial_info,
     """Draw a trajectory in PyBullet's GUI.
 
     """
-    for point in waypoints:
-        p.loadURDF(os.path.join(initial_info["urdf_dir"], "sphere.urdf"),
-                   [point[0], point[1], point[2]],
-                   p.getQuaternionFromEuler([0,0,0]),
-                   physicsClientId=initial_info["pyb_client"])
+    # for point in waypoints:
+    #     p.loadURDF(os.path.join(initial_info["urdf_dir"], "sphere.urdf"),
+    #                [point[0], point[1], point[2]],
+    #                p.getQuaternionFromEuler([0,0,0]),
+    #                physicsClientId=initial_info["pyb_client"])
     step = int(ref_x.shape[0]/50)
     for i in range(step, ref_x.shape[0], step):
         p.addUserDebugLine(lineFromXYZ=[ref_x[i-step], ref_y[i-step], ref_z[i-step]],

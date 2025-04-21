@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 30
+DURATION = 20
 with open("log.txt", "w") as f:
     pass
 
@@ -121,7 +121,7 @@ class Controller():
         plot_trajectory(t_scaled, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
         # Draw the trajectory on PyBullet's GUI.
-        # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+        draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
 
     def planning(self, use_firmware, initial_info):
@@ -139,8 +139,8 @@ class Controller():
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
-        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
