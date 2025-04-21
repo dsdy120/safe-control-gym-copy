@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 60
+DURATION = 30
 with open("log.txt", "w") as f:
     pass
 
@@ -198,6 +198,9 @@ class Controller():
             prev = point
 
         print("[Distance]:", dist)
+        self.prev_deviation = np.zeros(3)
+        self.sum_deviation = np.zeros(3)
+
         #########################
         # REPLACE THIS (END) ####
         #########################
@@ -262,14 +265,25 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
 
+            deviation = obs[:6:2] - target_pos
+            self.sum_deviation = self.sum_deviation + deviation
+            deviation_diff = deviation - self.prev_deviation
+            kp = 0.45
+            ki = 0.001
+            kd  = 0
+            
+            correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
+
             command_type = Command(1)  # cmdFullState.
             # args = [target_pos, target_yaw, 0, False]
-            args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
+            args = [target_pos, target_vel-correction, target_acc, target_yaw, target_rpy_rates]
             print(f"Iteration: {iteration}, Command Type: {command_type}")
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
-            print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
+            print(f"Position: {obs[:6:2]}, Location Deviation: {deviation} ({np.linalg.norm(deviation)} m)")
             with open("log.txt", "a") as f:
-                f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
+                f.write(f"{(deviation)[0]},{(deviation)[1]},{(deviation)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
+
+            self.prev_deviation = deviation
 
         elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
