@@ -145,8 +145,8 @@ class Controller():
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
-        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
