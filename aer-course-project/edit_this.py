@@ -49,8 +49,8 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 30
-PID_FF_NOT_PID_VEL = True
+DURATION = 20
+LOW_SPEED_CONTROL = False
 with open("log.txt", "w") as f:
     pass
 
@@ -146,8 +146,8 @@ class Controller():
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
-        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -283,7 +283,7 @@ class Controller():
             target_rpy_rates = np.zeros(3)
             deviation = obs[:6:2] - target_pos
 
-            if PID_FF_NOT_PID_VEL:
+            if LOW_SPEED_CONTROL:
                 # Calculate current step in trajectory, clamped to valid range
                 base_step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) - 1)
                 
