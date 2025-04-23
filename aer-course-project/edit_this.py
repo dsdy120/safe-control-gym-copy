@@ -50,7 +50,7 @@ except ImportError:
     from . import example_custom_utils as ecu
 
 DURATION = 30
-PID_FF_NOT_PID_VEL = True
+PID_FF_NOT_PID_VEL = False
 with open("log.txt", "w") as f:
     pass
 
