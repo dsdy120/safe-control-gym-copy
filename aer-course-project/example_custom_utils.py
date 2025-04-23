@@ -45,10 +45,10 @@ def map_generation(res, obs):
             
             M[(x-w):(x+w), (y-w):(y+w)] = 1
             
-            M[(x-w), (y-w)] = 0
-            M[(x-w), (y+w-1)] = 0
-            M[(x+w-1), (y-w)] = 0
-            M[(x+w-1), (y+w-1)] = 0
+            # M[(x-w), (y-w)] = 0
+            # M[(x-w), (y+w-1)] = 0
+            # M[(x+w-1), (y-w)] = 0
+            # M[(x+w-1), (y+w-1)] = 0
 
             """M[(x-w+1):(x+w-1), (y+w)] = 1
             M[(x-w+1):(x+w-1), (y-w-1)] = 1
@@ -78,15 +78,15 @@ def map_generation(res, obs):
             M[(x-min):(x+max), (y-t):y] = 1
             M[(x-min):(x+max), (y+1):(y+t+1)] = 1
 
-            M[(x-min), (y-t)] = 0
-            M[(x-min), (y-1)] = 0
-            M[(x-min), (y+1)] = 0
-            M[(x-min), (y+t)] = 0
+            # M[(x-min), (y-t)] = 0
+            # M[(x-min), (y-1)] = 0
+            # M[(x-min), (y+1)] = 0
+            # M[(x-min), (y+t)] = 0
 
-            M[(x+max-1), (y-t)] = 0
-            M[(x+max-1), (y-1)] = 0
-            M[(x+max-1), (y+1)] = 0
-            M[(x+max-1), (y+t)] = 0
+            # M[(x+max-1), (y-t)] = 0
+            # M[(x+max-1), (y-1)] = 0
+            # M[(x+max-1), (y+1)] = 0
+            # M[(x+max-1), (y+t)] = 0
 
 
         else:
@@ -95,15 +95,15 @@ def map_generation(res, obs):
             M[(x-min):(x+max), (y-t):y] = 1
             M[(x-min):(x+max), (y+1):(y+t+1)] = 1
 
-            M[(x-min), (y-t)] = 0
-            M[(x-min), (y-1)] = 0
-            M[(x-min), (y+1)] = 0
-            M[(x-min), (y+t)] = 0
+            # M[(x-min), (y-t)] = 0
+            # M[(x-min), (y-1)] = 0
+            # M[(x-min), (y+1)] = 0
+            # M[(x-min), (y+t)] = 0
 
-            M[(x+max-1), (y-t)] = 0
-            M[(x+max-1), (y-1)] = 0
-            M[(x+max-1), (y+1)] = 0
-            M[(x+max-1), (y+t)] = 0
+            # M[(x+max-1), (y-t)] = 0
+            # M[(x+max-1), (y-1)] = 0
+            # M[(x+max-1), (y+1)] = 0
+            # M[(x+max-1), (y+t)] = 0
 
 
     for i, coord in enumerate(gate_horizontal):
@@ -116,15 +116,15 @@ def map_generation(res, obs):
             M[(x-t):x, (y-min):(y+max)] = 1
             M[(x+1):(x+t+1), (y-min):(y+max)] = 1
 
-            M[(x-t), (y-min)] = 0
-            M[(x-1), (y-min)] = 0
-            M[(x+1), (y-min)] = 0
-            M[(x+t), (y-min)] = 0
+            # M[(x-t), (y-min)] = 0
+            # M[(x-1), (y-min)] = 0
+            # M[(x+1), (y-min)] = 0
+            # M[(x+t), (y-min)] = 0
 
-            M[(x-t), (y+max-1)] = 0
-            M[(x-1), (y+max-1)] = 0
-            M[(x+1), (y+max-1)] = 0
-            M[(x+t), (y+max-1)] = 0
+            # M[(x-t), (y+max-1)] = 0
+            # M[(x-1), (y+max-1)] = 0
+            # M[(x+1), (y+max-1)] = 0
+            # M[(x+t), (y+max-1)] = 0
 
         else:
             min = 3
@@ -133,10 +133,10 @@ def map_generation(res, obs):
             M[(x-t):x, (y-min):(y+max)] = 1
             M[(x+1):(x+t+1), (y-min):(y+max)] = 1
 
-            M[(x-t), (y-min)] = 0
-            M[(x-1), (y-min)] = 0
-            M[(x+1), (y-min)] = 0
-            M[(x+t), (y-min)] = 0
+            # M[(x-t), (y-min)] = 0
+            # M[(x-1), (y-min)] = 0
+            # M[(x+1), (y-min)] = 0
+            # M[(x+t), (y-min)] = 0
 
             M[(x-2), (y+2)] = 1
             M[(x+2), (y+2)] = 1
