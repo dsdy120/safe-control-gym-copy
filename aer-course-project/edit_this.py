@@ -274,7 +274,7 @@ class Controller():
             self.sum_deviation = self.sum_deviation + deviation
             deviation_diff = deviation - self.prev_deviation
             kp = 0.45
-            ki = 0.1
+            ki = 0.001
             kd  = 0
             # kp = 0
             # ki = 0
@@ -286,7 +286,6 @@ class Controller():
             # args = [target_pos, target_yaw, 0, False]
             args = [target_pos, target_vel-correction, target_acc, target_yaw, target_rpy_rates]
             print(f"Iteration: {iteration}, Command Type: {command_type}")
-            args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
 
 
