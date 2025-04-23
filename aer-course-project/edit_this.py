@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 10
+DURATION = 20
 with open("log.txt", "w") as f:
     pass
 
@@ -145,8 +145,8 @@ class Controller():
         # M = ecu.map_generation(res) # generate map with obstacles
 
         #
-        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -281,6 +281,7 @@ class Controller():
             # kd = 0
             
             correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
+            print(f"Correction: {np.linalg.norm(correction)}")
 
             command_type = Command(1)  # cmdFullState.
             # args = [target_pos, target_yaw, 0, False]
