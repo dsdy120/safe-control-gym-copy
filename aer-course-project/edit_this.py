@@ -50,7 +50,7 @@ except ImportError:
     from . import example_custom_utils as ecu
 
 DURATION = 30
-PID_FF_NOT_PID_VEL = False
+PID_FF_NOT_PID_VEL = True
 with open("log.txt", "w") as f:
     pass
 
@@ -255,6 +255,17 @@ class Controller():
         # print("The info. of the gates ")
         # print(self.NOMINAL_GATES)
 
+        # Initialize current position from observation
+        curr_pos = np.array([obs[0], obs[2], obs[4]])  # x, y, z positions
+
+        # PID gain parameters for position control
+        kp = np.array([2.0, 2.0, 3.0])  # Proportional gains for x, y, z
+        kd = np.array([0.8, 0.8, 1.0])  # Derivative gains for x, y, z
+
+        # Lookahead parameter - how many steps ahead to look in the trajectory
+        # This creates a predictive effect that anticipates curves and changes
+        lookahead = 5  
+
         if iteration == 0:
             height = 1
             duration = 2
@@ -270,6 +281,7 @@ class Controller():
             target_acc = np.zeros(3)
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
+            deviation = obs[:6:2] - target_pos
 
             if PID_FF_NOT_PID_VEL:
                 # Calculate current step in trajectory, clamped to valid range
@@ -321,7 +333,6 @@ class Controller():
                 args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
             else:
-                deviation = obs[:6:2] - target_pos
                 self.sum_deviation = self.sum_deviation + deviation
                 deviation_diff = deviation - self.prev_deviation
                 kp = 0.7
