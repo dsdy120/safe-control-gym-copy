@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 10
+DURATION = 20
 with open("log.txt", "w") as f:
     pass
 
@@ -274,7 +274,7 @@ class Controller():
             self.sum_deviation = self.sum_deviation + deviation
             deviation_diff = deviation - self.prev_deviation
             kp = 0.45
-            ki = 0.001
+            ki = 0.1
             kd  = 0
             # kp = 0
             # ki = 0
