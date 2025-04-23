@@ -50,6 +50,7 @@ except ImportError:
     from . import example_custom_utils as ecu
 
 DURATION = 30
+PID_FF_NOT_PID_VEL = True
 with open("log.txt", "w") as f:
     pass
 
@@ -270,25 +271,26 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
 
-            deviation = obs[:6:2] - target_pos
-            self.sum_deviation = self.sum_deviation + deviation
-            deviation_diff = deviation - self.prev_deviation
-            kp = 0.7
-            ki = 0.001
-            kd  = 0
-            # kp = 0
-            # ki = 0
-            # kd = 0
-            
-            correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
+            if PID_FF_NOT_PID_VEL
+                pass
+            else:
+                deviation = obs[:6:2] - target_pos
+                self.sum_deviation = self.sum_deviation + deviation
+                deviation_diff = deviation - self.prev_deviation
+                kp = 0.7
+                ki = 0.001
+                kd  = 0
+                # kp = 0
+                # ki = 0
+                # kd = 0
+                
+                correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
 
-            command_type = Command(1)  # cmdFullState.
-            # args = [target_pos, target_yaw, 0, False]
-            args = [target_pos, target_vel-correction, target_acc, target_yaw, target_rpy_rates]
+                command_type = Command(1)  # cmdFullState.
+                args = [target_pos, target_vel-correction, target_acc, target_yaw, target_rpy_rates]
+
+
             print(f"Iteration: {iteration}, Command Type: {command_type}")
-            # args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
-
-
 
             self.target.append(target_pos)
             self.actual.append(obs[:6:2])
