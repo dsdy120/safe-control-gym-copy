@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 60
+DURATION = 30
 with open("log.txt", "w") as f:
     pass
 
@@ -295,7 +295,7 @@ class Controller():
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
             print(f"Position: {obs[:6:2]}, Location Deviation: {deviation} ({np.linalg.norm(deviation)} m)")
             with open("log.txt", "a") as f:
-                f.write(f"{(deviation)[0]},{(deviation)[1]},{(deviation)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
+                f.write(f"{(target_pos)[0]},{(target_pos)[1]},{(target_pos)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
 
             self.prev_deviation = deviation
 
