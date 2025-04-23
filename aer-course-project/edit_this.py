@@ -272,7 +272,54 @@ class Controller():
             target_rpy_rates = np.zeros(3)
 
             if PID_FF_NOT_PID_VEL:
-                pass
+                # Calculate current step in trajectory, clamped to valid range
+                base_step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) - 1)
+                
+                # Calculate lookahead step, also clamped
+                lookahead_step = min(base_step + lookahead, len(self.ref_x) - 1)
+                
+                # Current target position
+                target_pos = np.array([self.ref_x[base_step], self.ref_y[base_step], self.ref_z[base_step]])
+                
+                # Lookahead position (for prediction)
+                lookahead_pos = np.array([self.ref_x[lookahead_step], self.ref_y[lookahead_step], self.ref_z[lookahead_step]])
+                
+                # Calculate velocity as direction toward lookahead point
+                # Scale by distance to create appropriate velocity magnitude
+                distance_to_lookahead = np.linalg.norm(lookahead_pos - target_pos)
+                direction_to_lookahead = (lookahead_pos - target_pos) / (distance_to_lookahead + 1e-6)  # Avoid division by zero
+                
+                # Calculate planned velocity vector based on lookahead
+                # Speed increases with distance to maintain smooth motion
+                target_vel = direction_to_lookahead * min(distance_to_lookahead * 2.0, 1.0)
+                
+                # Calculate errors
+                pos_error = target_pos - curr_pos
+                
+                # Calculate acceleration using PID approach
+                # Apply proportional term (error) and derivative term (desired velocity)
+                target_acc = kp * pos_error + kd * target_vel
+                
+                # Limit acceleration for physical realism
+                acc_limit = 2.0  # m/s²
+                acc_norm = np.linalg.norm(target_acc)
+                if acc_norm > acc_limit:
+                    target_acc = target_acc * (acc_limit / acc_norm)
+                
+                # Calculate yaw to point in direction of travel
+                # Only change yaw if we're moving significantly
+                velocity_magnitude = np.linalg.norm(target_vel[:2])  # Only consider xy plane for yaw
+                if velocity_magnitude > 0.2:  # Only change yaw if we're moving
+                    target_yaw = np.arctan2(target_vel[1], target_vel[0])
+                else:
+                    target_yaw = 0.0  # Default yaw
+                
+                # Zero angular rates (let firmware handle this)
+                target_rpy_rates = np.zeros(3)
+
+                command_type = Command(1)  # cmdFullState.
+                args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
+
             else:
                 deviation = obs[:6:2] - target_pos
                 self.sum_deviation = self.sum_deviation + deviation
