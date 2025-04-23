@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 20
+DURATION = 60
 with open("log.txt", "w") as f:
     pass
 
