@@ -248,8 +248,25 @@ class Controller():
         # REPLACE THIS (START) ##
         #########################
 
-        # print("The info. of the gates ")
-        # print(self.NOMINAL_GATES)
+
+        if self.ctrl is not None:
+            raise RuntimeError("[ERROR] Using method 'cmdFirmware' but Controller was created with 'use_firmware' = False.")
+
+        # [INSTRUCTIONS] 
+        # self.CTRL_FREQ is 30 (set in the getting_started.yaml file) 
+        # control input iteration indicates the number of control inputs sent to the quadrotor
+        iteration = int(time*self.CTRL_FREQ)
+
+        # Initialize current position from observation
+        curr_pos = np.array([obs[0], obs[2], obs[4]])  # x, y, z positions
+
+        # PID gain parameters for position control
+        kp = np.array([2.0, 2.0, 3.0])  # Proportional gains for x, y, z
+        kd = np.array([0.8, 0.8, 1.0])  # Derivative gains for x, y, z
+
+        # Lookahead parameter - how many steps ahead to look in the trajectory
+        # This creates a predictive effect that anticipates curves and changes
+        lookahead = 5  
 
         if iteration == 0:
             height = 1
@@ -258,55 +275,69 @@ class Controller():
             command_type = Command(2)  # Take-off.
             args = [height, duration]
 
-        # [INSTRUCTIONS] Example code for using cmdFullState interface   
         elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
-            step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
-            target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
-            target_vel = np.zeros(3)
-            target_acc = np.zeros(3)
-            target_yaw = 0.
+            # Calculate current step in trajectory, clamped to valid range
+            base_step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) - 1)
+            
+            # Calculate lookahead step, also clamped
+            lookahead_step = min(base_step + lookahead, len(self.ref_x) - 1)
+            
+            # Current target position
+            target_pos = np.array([self.ref_x[base_step], self.ref_y[base_step], self.ref_z[base_step]])
+            
+            # Lookahead position (for prediction)
+            lookahead_pos = np.array([self.ref_x[lookahead_step], self.ref_y[lookahead_step], self.ref_z[lookahead_step]])
+            
+            # Calculate velocity as direction toward lookahead point
+            # Scale by distance to create appropriate velocity magnitude
+            distance_to_lookahead = np.linalg.norm(lookahead_pos - target_pos)
+            direction_to_lookahead = (lookahead_pos - target_pos) / (distance_to_lookahead + 1e-6)  # Avoid division by zero
+            
+            # Calculate planned velocity vector based on lookahead
+            # Speed increases with distance to maintain smooth motion
+            target_vel = direction_to_lookahead * min(distance_to_lookahead * 2.0, 1.0)
+            
+            # Calculate errors
+            pos_error = target_pos - curr_pos
+            
+            # Calculate acceleration using PID approach
+            # Apply proportional term (error) and derivative term (desired velocity)
+            target_acc = kp * pos_error + kd * target_vel
+            
+            # Limit acceleration for physical realism
+            acc_limit = 2.0  # m/s²
+            acc_norm = np.linalg.norm(target_acc)
+            if acc_norm > acc_limit:
+                target_acc = target_acc * (acc_limit / acc_norm)
+            
+            # Calculate yaw to point in direction of travel
+            # Only change yaw if we're moving significantly
+            velocity_magnitude = np.linalg.norm(target_vel[:2])  # Only consider xy plane for yaw
+            if velocity_magnitude > 0.2:  # Only change yaw if we're moving
+                target_yaw = np.arctan2(target_vel[1], target_vel[0])
+            else:
+                target_yaw = 0.0  # Default yaw
+            
+            # Zero angular rates (let firmware handle this)
             target_rpy_rates = np.zeros(3)
 
             command_type = Command(1)  # cmdFullState.
-            # args = [target_pos, target_yaw, 0, False]
             args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
-
-
+            # Record for analysis
             self.target.append(target_pos)
-            self.actual.append(obs[:6:2])
-            # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
-            # print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
+            self.actual.append(curr_pos)
+            
+            # Debug info can be written to log file if needed
             # with open("log.txt", "a") as f:
-            #     f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
+            #     f.write(f"{time},{target_pos[0]},{target_pos[1]},{target_pos[2]},{curr_pos[0]},{curr_pos[1]},{curr_pos[2]}\n")
         
         elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
-    #    # [INSTRUCTIONS] Example code for using goTo interface 
-    #     elif iteration == 20*self.CTRL_FREQ+1:
-    #         x = self.ref_x[-1]
-    #         y = self.ref_y[-1]
-    #         z = self.ref_z[-1]
-    #         yaw = 0.
-    #         duration = 30
-
-    #         command_type = Command(5)  # goTo.
-    #         args = [[x, y, z], yaw, duration, False]
-
-        # elif iteration == 23*self.CTRL_FREQ:
-        #     x = self.initial_obs[0]
-        #     y = self.initial_obs[2]
-        #     z = 1.5
-        #     yaw = 0.
-        #     duration = 6
-
-        #     command_type = Command(5)  # goTo.
-        #     args = [[x, y, z], yaw, duration, False]
-
         elif iteration == (self._duration+7)*self.CTRL_FREQ:
-
+            # Visualization code unchanged
             target_arr = np.array(self.target)
             actual_arr = np.array(self.actual)
 
@@ -342,6 +373,108 @@ class Controller():
             args = []
         
         print(f"Iteration: {iteration}, Command Type: {command_type}")
+
+        return command_type, args
+
+
+
+
+    #     # print("The info. of the gates ")
+    #     # print(self.NOMINAL_GATES)
+
+    #     if iteration == 0:
+    #         height = 1
+    #         duration = 2
+
+    #         command_type = Command(2)  # Take-off.
+    #         args = [height, duration]
+
+    #     # [INSTRUCTIONS] Example code for using cmdFullState interface   
+    #     #elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
+    #     elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
+    #         step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
+    #         target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
+            
+    #         target_vel = np.zeros(3)
+    #         target_acc = np.zeros(3)
+    #         target_yaw = 0.
+    #         target_rpy_rates = np.zeros(3)
+
+    #         command_type = Command(1)  # cmdFullState.
+    #         # args = [target_pos, target_yaw, 0, False]
+    #         args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
+
+
+
+    #         self.target.append(target_pos)
+    #         self.actual.append(obs[:6:2])
+    #         # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
+    #         # print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
+    #         # with open("log.txt", "a") as f:
+    #         #     f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
+        
+    #     elif iteration == (self._duration+4)*self.CTRL_FREQ:
+    #         command_type = Command(6)  # Notify setpoint stop.
+    #         args = []
+
+    # #    # [INSTRUCTIONS] Example code for using goTo interface 
+    # #     elif iteration == 20*self.CTRL_FREQ+1:
+    # #         x = self.ref_x[-1]
+    # #         y = self.ref_y[-1]
+    # #         z = self.ref_z[-1]
+    # #         yaw = 0.
+    # #         duration = 30
+
+    # #         command_type = Command(5)  # goTo.
+    # #         args = [[x, y, z], yaw, duration, False]
+
+    #     # elif iteration == 23*self.CTRL_FREQ:
+    #     #     x = self.initial_obs[0]
+    #     #     y = self.initial_obs[2]
+    #     #     z = 1.5
+    #     #     yaw = 0.
+    #     #     duration = 6
+
+    #     #     command_type = Command(5)  # goTo.
+    #     #     args = [[x, y, z], yaw, duration, False]
+
+    #     elif iteration == (self._duration+7)*self.CTRL_FREQ:
+
+    #         target_arr = np.array(self.target)
+    #         actual_arr = np.array(self.actual)
+
+    #         plt.figure(figsize=(8, 6))
+    #         plt.plot(target_arr[:, 0], target_arr[:, 1], 'b--', label='Target Path')
+    #         plt.plot(actual_arr[:, 0], actual_arr[:, 1], 'r-', label='Actual Path')
+
+    #         for t, a in zip(target_arr, actual_arr):
+    #             plt.plot([t[0], a[0]], [t[1], a[1]], 'k-', alpha=0.3)
+
+    #         plt.xlabel("x (m)")
+    #         plt.ylabel("y (m)")
+    #         plt.title("XY Trajectory: Target vs Actual with Correspondence")
+    #         plt.legend()
+    #         plt.axis('equal')
+    #         plt.grid(True)
+    #         plt.tight_layout()
+    #         plt.savefig("trajectory_correspondence.png")
+    #         plt.show()
+
+    #         height = 0.
+    #         duration = 3
+
+    #         command_type = Command(3)  # Land.
+    #         args = [height, duration]
+
+    #     elif iteration == (self._duration+18)*self.CTRL_FREQ:
+    #         command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
+    #         args = []
+
+    #     else:
+    #         command_type = Command(0)  # None.
+    #         args = []
+        
+    #     print(f"Iteration: {iteration}, Command Type: {command_type}")
 
 
         #########################
