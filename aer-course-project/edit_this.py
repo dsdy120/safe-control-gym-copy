@@ -53,6 +53,8 @@ DURATION = 60
 with open("log.txt", "w") as f:
     pass
 
+import matplotlib.pyplot as plt
+
 #########################
 # REPLACE THIS (END) ####
 #########################
@@ -122,6 +124,10 @@ class Controller():
 
         # Draw the trajectory on PyBullet's GUI.
         # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+
+
+        self.target =[]
+        self.actual = []
 
 
     def planning(self, use_firmware, initial_info):
@@ -251,7 +257,6 @@ class Controller():
 
             command_type = Command(2)  # Take-off.
             args = [height, duration]
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         # [INSTRUCTIONS] Example code for using cmdFullState interface   
         elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
@@ -265,16 +270,19 @@ class Controller():
             command_type = Command(1)  # cmdFullState.
             # args = [target_pos, target_yaw, 0, False]
             args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
-            # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
-            print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
-            with open("log.txt", "a") as f:
-                f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
 
+
+
+            self.target.append(target_pos)
+            self.actual.append(obs[:6:2])
+            # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
+            # print(f"Location Deviation: {target_pos - obs[:6:2]} ({np.linalg.norm(target_pos - obs[:6:2])} m)")
+            # with open("log.txt", "a") as f:
+            #     f.write(f"{(target_pos - obs[:6:2])[0]},{(target_pos - obs[:6:2])[1]},{(target_pos - obs[:6:2])[2]},{np.linalg.norm(target_pos - obs[:6:2])},{obs[0]},{obs[2]},{obs[4]}\n")
+        
         elif iteration == (self._duration+4)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
     #    # [INSTRUCTIONS] Example code for using goTo interface 
     #     elif iteration == 20*self.CTRL_FREQ+1:
@@ -298,22 +306,43 @@ class Controller():
         #     args = [[x, y, z], yaw, duration, False]
 
         elif iteration == (self._duration+7)*self.CTRL_FREQ:
+
+            target_arr = np.array(self.target)
+            actual_arr = np.array(self.actual)
+
+            plt.figure(figsize=(8, 6))
+            plt.plot(target_arr[:, 0], target_arr[:, 1], 'b--', label='Target Path')
+            plt.plot(actual_arr[:, 0], actual_arr[:, 1], 'r-', label='Actual Path')
+
+            for t, a in zip(target_arr, actual_arr):
+                plt.plot([t[0], a[0]], [t[1], a[1]], 'k-', alpha=0.3)
+
+            plt.xlabel("x (m)")
+            plt.ylabel("y (m)")
+            plt.title("XY Trajectory: Target vs Actual with Correspondence")
+            plt.legend()
+            plt.axis('equal')
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig("trajectory_correspondence.png")
+            plt.show()
+
             height = 0.
             duration = 3
 
             command_type = Command(3)  # Land.
             args = [height, duration]
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         elif iteration == (self._duration+18)*self.CTRL_FREQ:
             command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
             args = []
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
 
         else:
             command_type = Command(0)  # None.
             args = []
-            print(f"Iteration: {iteration}, Command Type: {command_type}")
+        
+        print(f"Iteration: {iteration}, Command Type: {command_type}")
+
 
         #########################
         # REPLACE THIS (END) ####
