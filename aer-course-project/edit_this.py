@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 60
+DURATION = 20
 with open("log.txt", "w") as f:
     pass
 
@@ -123,7 +123,7 @@ class Controller():
         plot_trajectory(t_scaled, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
         # Draw the trajectory on PyBullet's GUI.
-        # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+        draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
 
         self.target =[]
