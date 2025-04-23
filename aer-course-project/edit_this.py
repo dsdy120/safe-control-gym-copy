@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 20
+DURATION = 40
 with open("log.txt", "w") as f:
     pass
 
@@ -146,7 +146,7 @@ class Controller():
 
         #
         gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -295,7 +295,7 @@ class Controller():
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
             print(f"Position: {obs[:6:2]}, Location Deviation: {deviation} ({np.linalg.norm(deviation)} m)")
             with open("log.txt", "a") as f:
-                f.write(f"{(deviation)[0]},{(deviation)[1]},{(deviation)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
+                f.write(f"{(target_pos)[0]},{(target_pos)[1]},{(target_pos)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
 
             self.prev_deviation = deviation
 
