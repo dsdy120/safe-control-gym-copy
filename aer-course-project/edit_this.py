@@ -271,7 +271,7 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
 
-            if PID_FF_NOT_PID_VEL
+            if PID_FF_NOT_PID_VEL:
                 pass
             else:
                 deviation = obs[:6:2] - target_pos
