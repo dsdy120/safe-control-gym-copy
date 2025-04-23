@@ -65,7 +65,7 @@ def map_generation(res, obs):
     gate_vertical = np.array([[GATE1_X, GATE1_Y], [GATE3_X,GATE3_Y]])   
     gate_horizontal = np.array([[GATE2_X, GATE2_Y], [GATE4_X, GATE4_Y]]) 
 
-    t = 3 # thickness of the gate
+    t = 4 # thickness of the gate
 
     # create obstacles around gates (determined experimentally)
     for i, coord in enumerate(gate_vertical):
@@ -73,33 +73,37 @@ def map_generation(res, obs):
         y = round((coord[1]+3.5)/res)
 
         if i == 0:
-            M[(x-5):(x+6), (y-t):y] = 1
-            M[(x-5):(x+6), (y+1):(y+t+1)] = 1
+            min = 3
+            max = 6
+            M[(x-min):(x+max), (y-t):y] = 1
+            M[(x-min):(x+max), (y+1):(y+t+1)] = 1
 
-            M[(x-5), (y-t)] = 0
-            M[(x-5), (y-1)] = 0
-            M[(x-5), (y+1)] = 0
-            M[(x-5), (y+t)] = 0
+            M[(x-min), (y-t)] = 0
+            M[(x-min), (y-1)] = 0
+            M[(x-min), (y+1)] = 0
+            M[(x-min), (y+t)] = 0
 
-            M[(x+5), (y-t)] = 0
-            M[(x+5), (y-1)] = 0
-            M[(x+5), (y+1)] = 0
-            M[(x+5), (y+t)] = 0
+            M[(x+max-1), (y-t)] = 0
+            M[(x+max-1), (y-1)] = 0
+            M[(x+max-1), (y+1)] = 0
+            M[(x+max-1), (y+t)] = 0
 
 
         else:
-            M[(x-4):(x+6), (y-t):y] = 1
-            M[(x-4):(x+6), (y+1):(y+t+1)] = 1
+            min = 4
+            max = 4
+            M[(x-min):(x+max), (y-t):y] = 1
+            M[(x-min):(x+max), (y+1):(y+t+1)] = 1
 
-            M[(x-4), (y-t)] = 0
-            M[(x-4), (y-1)] = 0
-            M[(x-4), (y+1)] = 0
-            M[(x-4), (y+t)] = 0
+            M[(x-min), (y-t)] = 0
+            M[(x-min), (y-1)] = 0
+            M[(x-min), (y+1)] = 0
+            M[(x-min), (y+t)] = 0
 
-            M[(x+5), (y-t)] = 0
-            M[(x+5), (y-1)] = 0
-            M[(x+5), (y+1)] = 0
-            M[(x+5), (y+t)] = 0
+            M[(x+max-1), (y-t)] = 0
+            M[(x+max-1), (y-1)] = 0
+            M[(x+max-1), (y+1)] = 0
+            M[(x+max-1), (y+t)] = 0
 
 
     for i, coord in enumerate(gate_horizontal):
@@ -107,30 +111,37 @@ def map_generation(res, obs):
         y = round((coord[1]+3.5)/res)
 
         if i == 0:
-            M[(x-t):x, (y-5):(y+6)] = 1
-            M[(x+1):(x+t+1), (y-5):(y+6)] = 1
+            min = 5
+            max = 4
+            M[(x-t):x, (y-min):(y+max)] = 1
+            M[(x+1):(x+t+1), (y-min):(y+max)] = 1
 
-            M[(x-t), (y-5)] = 0
-            M[(x-1), (y-5)] = 0
-            M[(x+1), (y-5)] = 0
-            M[(x+t), (y-5)] = 0
+            M[(x-t), (y-min)] = 0
+            M[(x-1), (y-min)] = 0
+            M[(x+1), (y-min)] = 0
+            M[(x+t), (y-min)] = 0
 
-            M[(x-t), (y+5)] = 0
-            M[(x-1), (y+5)] = 0
-            M[(x+1), (y+5)] = 0
-            M[(x+t), (y+5)] = 0
+            M[(x-t), (y+max-1)] = 0
+            M[(x-1), (y+max-1)] = 0
+            M[(x+1), (y+max-1)] = 0
+            M[(x+t), (y+max-1)] = 0
 
         else:
-            M[(x-t):x, (y-5):(y+2)] = 1
-            M[(x+1):(x+t+1), (y-5):(y+2)] = 1
+            min = 3
+            max = 2
 
-            M[(x-t), (y-5)] = 0
-            M[(x-1), (y-5)] = 0
-            M[(x+1), (y-5)] = 0
-            M[(x+t), (y-5)] = 0
+            M[(x-t):x, (y-min):(y+max)] = 1
+            M[(x+1):(x+t+1), (y-min):(y+max)] = 1
+
+            M[(x-t), (y-min)] = 0
+            M[(x-1), (y-min)] = 0
+            M[(x+1), (y-min)] = 0
+            M[(x+t), (y-min)] = 0
 
             M[(x-2), (y+2)] = 1
             M[(x+2), (y+2)] = 1
+            M[(x-3), (y+2)] = 1
+            M[(x+3), (y+2)] = 1
 
     return M
 
