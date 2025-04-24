@@ -56,7 +56,8 @@ LOW_SPEED_CONTROL = True
 
 MAX_DEVIATION_ALLOWED = 0.2  # m, between 0.1 and 0.3 m at 20s DURATION
 
-GATE_SEQUENCE = [1,2,3,1,3,4]
+GATE_SEQUENCE = [1,3,4,2,1,4]
+# GATE_SEQUENCE = [1,2,3,1,3,4]
 # GATE_SEQUENCE = [4,2,3,1,4,2]
 
 with open("log.txt", "w") as f:
