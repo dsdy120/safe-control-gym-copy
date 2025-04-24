@@ -49,10 +49,15 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 60
+DURATION = 30
 
 # True=Joe's control, False=Dean's control
 LOW_SPEED_CONTROL = True
+
+MAX_DEVIATION_ALLOWED = 0.3  # m, between 0.1 and 0.3 m at 20s DURATION
+
+GATE_SEQUENCE = [1,2,3,1,3,4]
+# GATE_SEQUENCE = [4,2,3,1,4,2]
 
 with open("log.txt", "w") as f:
     pass
@@ -148,9 +153,9 @@ class Controller():
         obstacles_enabled = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
-        #
-        gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        #gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        gate_order = np.array(GATE_SEQUENCE)
+        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
+        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -210,6 +215,7 @@ class Controller():
         print("[Distance]:", dist)
         self.prev_deviation = np.zeros(3)
         self.sum_deviation = np.zeros(3)
+        self.i_offset = 0
 
         #########################
         # REPLACE THIS (END) ####
@@ -254,6 +260,7 @@ class Controller():
         #########################
         # REPLACE THIS (START) ##
         #########################
+        iteration -= self.i_offset
 
         # print("The info. of the gates ")
         # print(self.NOMINAL_GATES)
@@ -284,6 +291,9 @@ class Controller():
             target_yaw = 0.
             target_rpy_rates = np.zeros(3)
             deviation = obs[:6:2] - target_pos
+
+            if np.linalg.norm(deviation) > MAX_DEVIATION_ALLOWED:
+                self.i_offset += 1
 
             if LOW_SPEED_CONTROL:
 
