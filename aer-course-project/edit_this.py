@@ -49,12 +49,12 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 10
+DURATION = 15
 
 # True=Joe's control, False=Dean's control
-LOW_SPEED_CONTROL = True
+LOW_SPEED_CONTROL = False
 
-MAX_DEVIATION_ALLOWED = 0.27  # m, between 0.1 and 0.3 m at 20s DURATION
+MAX_DEVIATION_ALLOWED = 1e9  # m, between 0.1 and 0.3 m at 20s DURATION
 
 GATE_SEQUENCE = [1,3,4,2,1,4]
 # GATE_SEQUENCE = [1,2,3,1,3,4]
@@ -329,9 +329,9 @@ class Controller():
             else:
                 self.sum_deviation = self.sum_deviation + deviation
                 deviation_diff = deviation - self.prev_deviation
-                kp = 0.7
+                kp = 0.6
                 ki = 0.001
-                kd  = 0
+                kd  = 0.1
                 # kp = 0
                 # ki = 0
                 # kd = 0
@@ -339,7 +339,7 @@ class Controller():
                 correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
 
                 command_type = Command(1)  # cmdFullState.
-                args = [target_pos, target_vel-correction, target_acc, target_yaw, target_rpy_rates]
+                args = [target_pos, target_vel, -correction, target_yaw, target_rpy_rates]
 
 
             print(f"Iteration: {iteration}, Command Type: {command_type}")
