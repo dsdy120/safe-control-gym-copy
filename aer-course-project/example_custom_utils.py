@@ -128,7 +128,7 @@ def map_generation(res, obs):
 
         else:
             min = 3
-            max = 2
+            max = 4
 
             M[(x-t):x, (y-min):(y+max)] = 1
             M[(x+1):(x+t+1), (y-min):(y+max)] = 1

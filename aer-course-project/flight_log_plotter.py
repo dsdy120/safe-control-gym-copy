@@ -21,8 +21,8 @@ def plot_deviation_from_log(log_file):
                 continue
 
     plt.figure(figsize=(10, 6))
-    plt.plot(current_x, current_y, label='Current Position', color='blue', marker='o')
-    plt.plot(waypoint_x, waypoint_y, label='Waypoint', color='red', marker='x')
+    plt.plot(current_x, current_y, label='Current Position', color='red', marker='o')
+    plt.plot(waypoint_x, waypoint_y, label='Waypoint', color='blue', marker='x')
 
     # Automatically adjust axis limits to fit the data
     plt.axis('equal')

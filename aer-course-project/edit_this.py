@@ -49,12 +49,12 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 30
+DURATION = 10
 
 # True=Joe's control, False=Dean's control
 LOW_SPEED_CONTROL = True
 
-MAX_DEVIATION_ALLOWED = 0.3  # m, between 0.1 and 0.3 m at 20s DURATION
+MAX_DEVIATION_ALLOWED = 0.27  # m, between 0.1 and 0.3 m at 20s DURATION
 
 GATE_SEQUENCE = [1,3,4,2,1,4]
 # GATE_SEQUENCE = [1,2,3,1,3,4]
@@ -164,7 +164,7 @@ class Controller():
         path, segments = ecu.path_planning(res, gate_order, obstacles_enabled).run_Astar()
         
         M = ecu.map_generation(res, obstacles_enabled)
-        # ecu.plot_map(M, res, path)
+        #ecu.plot_map(M, res, path)
 
         # initial waypoint
         """if use_firmware:
@@ -378,7 +378,7 @@ class Controller():
         #     command_type = Command(5)  # goTo.
         #     args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == (self._duration+7)*self.CTRL_FREQ:
+        elif iteration == (self._duration+5)*self.CTRL_FREQ:
 
             height = 0.
             duration = 3
