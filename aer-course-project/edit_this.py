@@ -49,7 +49,7 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 15
+DURATION = 10
 
 # True=Joe's control, False=Dean's control
 LOW_SPEED_CONTROL = False
