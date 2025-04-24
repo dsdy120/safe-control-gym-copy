@@ -24,6 +24,14 @@ def plot_deviation_from_log(log_file):
     plt.plot(current_x, current_y, label='Current Position', color='red', marker='o')
     plt.plot(waypoint_x, waypoint_y, label='Waypoint', color='blue', marker='x')
 
+
+    vel_x = [0] * (len(current_x)-2)
+    vel_y = [0] * (len(current_y)-2)
+    for i in range(len(current_x)-2):
+        vel_x[i] = (current_x[i+2] - current_x[i])*15
+        vel_y[i] = (current_y[i+2] - current_y[i])*15
+    vel = [((vx**2 + vy**2)**0.5) for vx, vy in zip(vel_x, vel_y)]
+
     # Automatically adjust axis limits to fit the data
     plt.axis('equal')
     plt.autoscale()
@@ -34,6 +42,16 @@ def plot_deviation_from_log(log_file):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(vel, label='Velocity', color='green')
+    plt.xlabel('Time Step')
+    plt.ylabel('Velocity (units/s)')
+    plt.title('Velocity Over Time')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 # Example usage
 plot_deviation_from_log('log.txt')
