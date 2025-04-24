@@ -49,8 +49,11 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
-DURATION = 20
-LOW_SPEED_CONTROL = False
+DURATION = 60
+
+# True=Joe's control, False=Dean's control
+LOW_SPEED_CONTROL = True
+
 with open("log.txt", "w") as f:
     pass
 
@@ -147,7 +150,7 @@ class Controller():
 
         #
         gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        #gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
@@ -258,13 +261,12 @@ class Controller():
         # Initialize current position from observation
         curr_pos = np.array([obs[0], obs[2], obs[4]])  # x, y, z positions
 
-        # PID gain parameters for position control
-        kp = np.array([2.0, 2.0, 3.0])  # Proportional gains for x, y, z
-        kd = np.array([0.8, 0.8, 1.0])  # Derivative gains for x, y, z
+        # PID gain parameters
+        kp = np.array([4, 4, 3.0])  # Proportional gains for x, y, z
+        kd = np.array([1.2, 1.2, 1.0])  # Derivative gains for x, y, z
 
         # Lookahead parameter - how many steps ahead to look in the trajectory
-        # This creates a predictive effect that anticipates curves and changes
-        lookahead = 5  
+        lookahead = 5
 
         if iteration == 0:
             height = 1
@@ -273,7 +275,7 @@ class Controller():
             command_type = Command(2)  # Take-off.
             args = [height, duration]
 
-        # [INSTRUCTIONS] Example code for using cmdFullState interface   
+        # cmdFullState
         elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
             step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
             target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
@@ -284,50 +286,38 @@ class Controller():
             deviation = obs[:6:2] - target_pos
 
             if LOW_SPEED_CONTROL:
-                # Calculate current step in trajectory, clamped to valid range
-                base_step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) - 1)
+
+                # lookahead step
+                lookahead_step = min(step + lookahead, len(self.ref_x) - 1) 
+                # lookahead position (for anticipating path)
+                lookahead_pos = np.array([self.ref_x[lookahead_step], self.ref_y[lookahead_step], self.ref_z[lookahead_step]]) 
                 
-                # Calculate lookahead step, also clamped
-                lookahead_step = min(base_step + lookahead, len(self.ref_x) - 1)
-                
-                # Current target position
-                target_pos = np.array([self.ref_x[base_step], self.ref_y[base_step], self.ref_z[base_step]])
-                
-                # Lookahead position (for prediction)
-                lookahead_pos = np.array([self.ref_x[lookahead_step], self.ref_y[lookahead_step], self.ref_z[lookahead_step]])
-                
-                # Calculate velocity as direction toward lookahead point
-                # Scale by distance to create appropriate velocity magnitude
+                # get the distance from target_pos to lookahead_pos
                 distance_to_lookahead = np.linalg.norm(lookahead_pos - target_pos)
+                # get the direction vector (unit vector) from target_pos to lookahead_pos
                 direction_to_lookahead = (lookahead_pos - target_pos) / (distance_to_lookahead + 1e-6)  # Avoid division by zero
                 
-                # Calculate planned velocity vector based on lookahead
-                # Speed increases with distance to maintain smooth motion
-                target_vel = direction_to_lookahead * min(distance_to_lookahead * 2.0, 1.0)
-                
-                # Calculate errors
+                # let the reference velocity for the PD controller be the velocity from target to lookahead point
+                target_vel = direction_to_lookahead * min(distance_to_lookahead, 0.8) # limit the speed to 0.8 m/s
+
+                # get position deviation
                 pos_error = target_pos - curr_pos
                 
-                # Calculate acceleration using PID approach
-                # Apply proportional term (error) and derivative term (desired velocity)
-                target_acc = kp * pos_error + kd * target_vel
+                # calculate acceleration using PD controller
+                target_acc = kp*pos_error + kd*target_vel
                 
-                # Limit acceleration for physical realism
-                acc_limit = 2.0  # m/s²
+                # limit acceleration
+                acc_limit = 0.8  # m/s²
                 acc_norm = np.linalg.norm(target_acc)
                 if acc_norm > acc_limit:
-                    target_acc = target_acc * (acc_limit / acc_norm)
+                    target_acc = target_acc * (acc_limit/acc_norm)
                 
-                # Calculate yaw to point in direction of travel
-                # Only change yaw if we're moving significantly
-                velocity_magnitude = np.linalg.norm(target_vel[:2])  # Only consider xy plane for yaw
-                if velocity_magnitude > 0.2:  # Only change yaw if we're moving
+                # calculate yaw to point in direction of travel
+                velocity_magnitude = np.linalg.norm(target_vel[:2])  # only consider xy
+                if velocity_magnitude > 0.2:  # only change yaw if large speed
                     target_yaw = np.arctan2(target_vel[1], target_vel[0])
                 else:
-                    target_yaw = 0.0  # Default yaw
-                
-                # Zero angular rates (let firmware handle this)
-                target_rpy_rates = np.zeros(3)
+                    target_yaw = 0.0 
 
                 command_type = Command(1)  # cmdFullState.
                 args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
@@ -353,7 +343,7 @@ class Controller():
             self.target.append(target_pos)
             self.actual.append(obs[:6:2])
             # print(f"Target Position: {target_pos}, Actual Position: {obs[:6:2]}")
-            print(f"Position: {obs[:6:2]}, Location Deviation: {deviation} ({np.linalg.norm(deviation)} m)")
+            # print(f"Position: {obs[:6:2]}, Location Deviation: {deviation} ({np.linalg.norm(deviation)} m)")
             with open("log.txt", "a") as f:
                 f.write(f"{(target_pos)[0]},{(target_pos)[1]},{(target_pos)[2]},{np.linalg.norm(deviation)},{obs[0]},{obs[2]},{obs[4]}\n")
 
@@ -386,6 +376,16 @@ class Controller():
 
         elif iteration == (self._duration+7)*self.CTRL_FREQ:
 
+            height = 0.
+            duration = 3
+
+            command_type = Command(3)  # Land.
+            args = [height, duration]
+
+        elif iteration == (self._duration+18)*self.CTRL_FREQ:
+            command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
+            args = []
+
             target_arr = np.array(self.target)
             actual_arr = np.array(self.actual)
 
@@ -405,16 +405,6 @@ class Controller():
             plt.tight_layout()
             plt.savefig("trajectory_correspondence.png")
             plt.show()
-
-            height = 0.
-            duration = 3
-
-            command_type = Command(3)  # Land.
-            args = [height, duration]
-
-        elif iteration == (self._duration+18)*self.CTRL_FREQ:
-            command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
-            args = []
 
         else:
             command_type = Command(0)  # None.
