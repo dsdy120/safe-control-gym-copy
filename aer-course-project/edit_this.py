@@ -54,7 +54,7 @@ DURATION = 30
 # True=Joe's control, False=Dean's control
 LOW_SPEED_CONTROL = True
 
-MAX_DEVIATION_ALLOWED = 0.3  # m, between 0.1 and 0.3 m at 20s DURATION
+MAX_DEVIATION_ALLOWED = 0.2  # m, between 0.1 and 0.3 m at 20s DURATION
 
 GATE_SEQUENCE = [1,2,3,1,3,4]
 # GATE_SEQUENCE = [4,2,3,1,4,2]
@@ -132,7 +132,7 @@ class Controller():
         plot_trajectory(t_scaled, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
         # Draw the trajectory on PyBullet's GUI.
-        draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
+        # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
 
         self.target =[]
@@ -322,13 +322,6 @@ class Controller():
                 if acc_norm > acc_limit:
                     target_acc = target_acc * (acc_limit/acc_norm)
                 
-                # calculate yaw to point in direction of travel
-                velocity_magnitude = np.linalg.norm(target_vel[:2])  # only consider xy
-                if velocity_magnitude > 0.2:  # only change yaw if large speed
-                    target_yaw = np.arctan2(target_vel[1], target_vel[0])
-                else:
-                    target_yaw = 0.0 
-
                 command_type = Command(1)  # cmdFullState.
                 args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
@@ -414,7 +407,7 @@ class Controller():
             plt.grid(True)
             plt.tight_layout()
             plt.savefig("trajectory_correspondence.png")
-            plt.show()
+            # plt.show()
 
         else:
             command_type = Command(0)  # None.

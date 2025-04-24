@@ -182,7 +182,7 @@ def plot_map(M, res, path1):
     plt.axis('equal')
     plt.legend()
     plt.title("A* Pathfinding Result")
-    plt.show()
+    # plt.show()
 
 class path_planning():
     def __init__(self, res, gate_order, obs):
