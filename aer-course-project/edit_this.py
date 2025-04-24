@@ -353,7 +353,7 @@ class Controller():
 
             self.prev_deviation = deviation
 
-        elif iteration == (self._duration+4)*self.CTRL_FREQ:
+        elif iteration == (self._duration+3.5)*self.CTRL_FREQ:
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
@@ -378,10 +378,10 @@ class Controller():
         #     command_type = Command(5)  # goTo.
         #     args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == (self._duration+5)*self.CTRL_FREQ:
+        elif iteration == (self._duration+3.6)*self.CTRL_FREQ:
 
             height = 0.
-            duration = 3
+            duration = 1
 
             command_type = Command(3)  # Land.
             args = [height, duration]
