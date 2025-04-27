@@ -7,7 +7,7 @@ This project implements an autonomous drone racing system that uses gate and obs
 
 Project Structure
 
-Requirements
+Requirements:
 
 Ensure you have the following dependencies installed:
 
