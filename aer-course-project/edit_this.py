@@ -49,17 +49,25 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
+# Target duration of the trajectory in seconds. 
+# Not strictly adhered to, but modifies the execution speed.
 DURATION = 10
 
 # True=Joe's control, False=Dean's control
 LOW_SPEED_CONTROL = False
 
+# Maximum deviation allowed from the trajectory
+# If exceeded, iteration number is held constant to allow
+# the quadrotor to catch up with the trajectory.
+# For high-speed control, set to 1e9 to disable.
 MAX_DEVIATION_ALLOWED = 1e9  # m, between 0.1 and 0.3 m at 20s DURATION
 
+# Choose the gate sequence to be passed to the path planner.
 GATE_SEQUENCE = [1,3,4,2,1,4]
 # GATE_SEQUENCE = [1,2,3,1,3,4]
 # GATE_SEQUENCE = [4,2,3,1,4,2]
 
+# Log flight-state to file for post-flight analysis.
 with open("log.txt", "w") as f:
     pass
 
@@ -135,7 +143,7 @@ class Controller():
         # Draw the trajectory on PyBullet's GUI.
         # draw_trajectory(initial_info, self.waypoints, self.ref_x, self.ref_y, self.ref_z)
 
-
+        # persistent target and actual position for PID control
         self.target =[]
         self.actual = []
 
@@ -154,6 +162,7 @@ class Controller():
         obstacles_enabled = 1 # set obstacles (1:True, 0:False)
         # M = ecu.map_generation(res) # generate map with obstacles
 
+        # Implement gate sequence
         gate_order = np.array(GATE_SEQUENCE)
         # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
         # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
@@ -161,8 +170,10 @@ class Controller():
         # np.random.shuffle(gate_order)
         print("[Gate Order]:", gate_order)
 
+        # A* path planning for entire trajectory
         path, segments = ecu.path_planning(res, gate_order, obstacles_enabled).run_Astar()
         
+        # Map visualization, deactivated for race runs
         M = ecu.map_generation(res, obstacles_enabled)
         #ecu.plot_map(M, res, path)
 
@@ -181,6 +192,7 @@ class Controller():
         waypoints.append((-0.5,  2.0, 2.0))
         waypoints.append([initial_info["x_reference"][0], initial_info["x_reference"][2], initial_info["x_reference"][4]])"""
 
+        # Smoothing path with polynomial fitting
         smooth_segments = []
         for seg in segments:
             real_path = np.array([[p[0]*res - 3.5, p[1]*res - 3.5, 1.0] for p in seg])
@@ -199,6 +211,7 @@ class Controller():
             smooth_seg = np.vstack([x, y, z]).T
             smooth_segments.append(smooth_seg)
 
+        # Generate reference xyz coordinates for controller
         smooth_path = np.vstack([s if i == 0 else s[1:] for i, s in enumerate(smooth_segments)])
         self.waypoints = smooth_path
         self._duration = DURATION
@@ -207,6 +220,7 @@ class Controller():
         self.ref_y = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 1])
         self.ref_z = np.interp(t_scaled, np.arange(smooth_path.shape[0]), smooth_path[:, 2])
 
+        # Estimate distance travelled for target duration calibration
         dist = 0
         prev = self.waypoints[0]
         for point in self.waypoints:
@@ -214,8 +228,12 @@ class Controller():
             prev = point
 
         print("[Distance]:", dist)
+
+        # previous and sum of deviations for PID control
         self.prev_deviation = np.zeros(3)
         self.sum_deviation = np.zeros(3)
+
+        # Offset iteration number for waypoint-delay
         self.i_offset = 0
 
         #########################
@@ -261,6 +279,9 @@ class Controller():
         #########################
         # REPLACE THIS (START) ##
         #########################
+
+        # If deviation is too large, hold iteration number constant so the same waypoint is called
+        # This allows the quadrotor to catch up with the trajectory.
         iteration -= self.i_offset
 
         # print("The info. of the gates ")
@@ -280,10 +301,10 @@ class Controller():
             height = 1
             duration = 2
 
-            command_type = Command(2)  # Take-off.
+            command_type = Command(2)  # Take-off for 2s.
             args = [height, duration]
 
-        # cmdFullState
+        # cmdFullState, wait 3s for the quadrotor to stabilize, then execute the trajectory for target duration seconds
         elif iteration >= 3*self.CTRL_FREQ and iteration < (self._duration + 3)*self.CTRL_FREQ:
             step = min(iteration-3*self.CTRL_FREQ, len(self.ref_x) -1)
             target_pos = np.array([self.ref_x[step], self.ref_y[step], self.ref_z[step]])
@@ -296,7 +317,7 @@ class Controller():
             if np.linalg.norm(deviation) > MAX_DEVIATION_ALLOWED:
                 self.i_offset += 1
 
-            if LOW_SPEED_CONTROL:
+            if LOW_SPEED_CONTROL: # Position-velocity feed-forward PID
 
                 # lookahead step
                 lookahead_step = min(step + lookahead, len(self.ref_x) - 1) 
@@ -326,9 +347,12 @@ class Controller():
                 command_type = Command(1)  # cmdFullState.
                 args = [target_pos, target_vel, target_acc, target_yaw, target_rpy_rates]
 
-            else:
+            else: # Acceleration PID
+                # Update sum and difference in deviation
                 self.sum_deviation = self.sum_deviation + deviation
                 deviation_diff = deviation - self.prev_deviation
+                
+                # Gain setting to override low-speed settings
                 kp = 0.6
                 ki = 0.001
                 kd  = 0.1
@@ -339,7 +363,7 @@ class Controller():
                 correction = kp*deviation + ki*self.sum_deviation + kd*deviation_diff
 
                 command_type = Command(1)  # cmdFullState.
-                args = [target_pos, target_vel, -correction, target_yaw, target_rpy_rates]
+                args = [target_pos, target_vel, -correction, target_yaw, target_rpy_rates] # Feed corrections to tgt acceleration input
 
 
             print(f"Iteration: {iteration}, Command Type: {command_type}")
@@ -353,7 +377,7 @@ class Controller():
 
             self.prev_deviation = deviation
 
-        elif iteration == (self._duration+3.5)*self.CTRL_FREQ:
+        elif iteration == (self._duration+3.5)*self.CTRL_FREQ: # Wait 0.5s before transitioning to high-level control
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
@@ -378,7 +402,7 @@ class Controller():
         #     command_type = Command(5)  # goTo.
         #     args = [[x, y, z], yaw, duration, False]
 
-        elif iteration == (self._duration+3.6)*self.CTRL_FREQ:
+        elif iteration == (self._duration+3.6)*self.CTRL_FREQ: # Wait another 0.1s before issuing land command
 
             height = 0.
             duration = 1
@@ -386,7 +410,7 @@ class Controller():
             command_type = Command(3)  # Land.
             args = [height, duration]
 
-        elif iteration == (self._duration+18)*self.CTRL_FREQ:
+        elif iteration == (self._duration+18)*self.CTRL_FREQ: # Stop after 15s
             command_type = Command(4)  # STOP command to be sent once the trajectory is completed.
             args = []
 
