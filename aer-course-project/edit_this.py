@@ -49,6 +49,8 @@ except ImportError:
     # PyTest import.
     from . import example_custom_utils as ecu
 
+import matplotlib.pyplot as plt
+
 # Target duration of the trajectory in seconds. 
 # Not strictly adhered to, but modifies the execution speed.
 DURATION = 10
@@ -64,14 +66,12 @@ MAX_DEVIATION_ALLOWED = 1e9  # m, between 0.1 and 0.3 m at 20s DURATION
 
 # Choose the gate sequence to be passed to the path planner.
 GATE_SEQUENCE = [1,3,4,2,1,4]
-# GATE_SEQUENCE = [1,2,3,1,3,4]
-# GATE_SEQUENCE = [4,2,3,1,4,2]
+# GATE_SEQUENCE = [1,2,3,1,3,4] # simple path (total dist=17.57)
+# GATE_SEQUENCE = [4,2,3,1,4,2] # complex path (total dist=33.39, min_duration=60)
 
 # Log flight-state to file for post-flight analysis.
 with open("log.txt", "w") as f:
     pass
-
-import matplotlib.pyplot as plt
 
 #########################
 # REPLACE THIS (END) ####
@@ -156,26 +156,27 @@ class Controller():
         ## generate waypoints for planning
 
         # Call a function in module `example_custom_utils`.
-        #ecu.exampleFunction()
+        # ecu.exampleFunction()
 
         res = 0.1 # set resolution of the map
         obstacles_enabled = 1 # set obstacles (1:True, 0:False)
-        # M = ecu.map_generation(res) # generate map with obstacles
+        # M = ecu.map_generation(res, obstacles_enabled) # generate map
 
         # Implement gate sequence
         gate_order = np.array(GATE_SEQUENCE)
-        # gate_order = np.array([4,2,3,1,4,2]) # dist=33.39, min_duration=60
-        # gate_order = np.array([1,2,3,1,3,4]) # dist=17.57, min_duration=
+        
+        # shuffle the gate order for testing various paths
         # gate_order[-2:] = np.random.randint(1,5, size=2)
         # np.random.shuffle(gate_order)
+        
         print("[Gate Order]:", gate_order)
 
         # A* path planning for entire trajectory
         path, segments = ecu.path_planning(res, gate_order, obstacles_enabled).run_Astar()
         
         # Map visualization, deactivated for race runs
-        M = ecu.map_generation(res, obstacles_enabled)
-        #ecu.plot_map(M, res, path)
+        # M = ecu.map_generation(res, obstacles_enabled)
+        # ecu.plot_map(M, res, path)
 
         # initial waypoint
         """if use_firmware:
@@ -290,7 +291,7 @@ class Controller():
         # Initialize current position from observation
         curr_pos = np.array([obs[0], obs[2], obs[4]])  # x, y, z positions
 
-        # PID gain parameters
+        # PID gain parameters (found through experimental tuning)
         kp = np.array([4, 4, 3.0])  # Proportional gains for x, y, z
         kd = np.array([1.2, 1.2, 1.0])  # Derivative gains for x, y, z
 
@@ -365,7 +366,6 @@ class Controller():
                 command_type = Command(1)  # cmdFullState.
                 args = [target_pos, target_vel, -correction, target_yaw, target_rpy_rates] # Feed corrections to tgt acceleration input
 
-
             print(f"Iteration: {iteration}, Command Type: {command_type}")
 
             self.target.append(target_pos)
@@ -381,16 +381,16 @@ class Controller():
             command_type = Command(6)  # Notify setpoint stop.
             args = []
 
-    #    # [INSTRUCTIONS] Example code for using goTo interface 
-    #     elif iteration == 20*self.CTRL_FREQ+1:
-    #         x = self.ref_x[-1]
-    #         y = self.ref_y[-1]
-    #         z = self.ref_z[-1]
-    #         yaw = 0.
-    #         duration = 30
+        # [INSTRUCTIONS] Example code for using goTo interface 
+        # elif iteration == 20*self.CTRL_FREQ+1:
+        #     x = self.ref_x[-1]
+        #     y = self.ref_y[-1]
+        #     z = self.ref_z[-1]
+        #     yaw = 0.
+        #     duration = 30
 
-    #         command_type = Command(5)  # goTo.
-    #         args = [[x, y, z], yaw, duration, False]
+        #     command_type = Command(5)  # goTo.
+        #     args = [[x, y, z], yaw, duration, False]
 
         # elif iteration == 23*self.CTRL_FREQ:
         #     x = self.initial_obs[0]

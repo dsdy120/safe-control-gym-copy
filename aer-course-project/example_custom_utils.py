@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+# gate positions
 GATE1_X = 0.5
 GATE1_Y = -2.5
 GATE2_X = 2.0
@@ -31,20 +32,21 @@ def map_generation(res, obs):
     NN = round(7/res) # number of nodes
     M = np.zeros((NN, NN), dtype=int) # initialize map with zeros (free)
 
-    # set obstacles if true
     w = round(0.3/res)
 
+    # set obstacles if true
     if obs == 1:
+        # obstacle locations
         obs = np.array([[1.5, -2.5], [0.5,-1], [1.5,0], [-1,0]])
+        
+        # accound for uncertainty for each obstacle
         for i, coord in enumerate(obs):
             x = round((coord[0]+3.5)/res)
             y = round((coord[1]+3.5)/res)
             
-            # if i==3:
-            #     w = round(0.4/res)
-            
             M[(x-w):(x+w), (y-w):(y+w)] = 1
             
+            # make obstacles rounded
             # M[(x-w), (y-w)] = 0
             # M[(x-w), (y+w-1)] = 0
             # M[(x+w-1), (y-w)] = 0
@@ -65,7 +67,7 @@ def map_generation(res, obs):
     gate_vertical = np.array([[GATE1_X, GATE1_Y], [GATE3_X,GATE3_Y]])   
     gate_horizontal = np.array([[GATE2_X, GATE2_Y], [GATE4_X, GATE4_Y]]) 
 
-    t = 4 # thickness of the gate
+    t = 4 # thickness of gates
 
     # create obstacles around gates (determined experimentally)
     for i, coord in enumerate(gate_vertical):
@@ -147,6 +149,7 @@ def map_generation(res, obs):
 
 # update map by closing the gate on the side the drone entered
 def update_map(M, path, gate_num, gate_coord):
+    # set the side of gate the drone came from to occupied
     if gate_num == 1 or gate_num == 3:
         x = gate_coord[0] + (path[-2][0]-gate_coord[0])
         M[x, gate_coord[1]] = 1
@@ -169,11 +172,12 @@ def plot_map(M, res, path1):
         for j in range(NN):
             if M[i, j] == 1:
                 plt.plot(i, j, 'kx')
-                
-    plt.plot(path1[:, 0], path1[:, 1], 'b-', linewidth=2, label='Path')
-    plt.plot((-1+3.5)/res, (-3+3.5)/res, 'go', label='Start')
-    plt.plot((-0.5+3.5)/res, (2+3.5)/res, 'ro', label='End')
+            
+    plt.plot(path1[:, 0], path1[:, 1], 'b-', linewidth=2, label='Path') # plot path
+    plt.plot((-1+3.5)/res, (-3+3.5)/res, 'go', label='Start') # plot start point
+    plt.plot((-0.5+3.5)/res, (2+3.5)/res, 'ro', label='End') # plot goal point
     
+    # plot centre of gates
     x = np.array([(GATE1_X+3.5)/res, (GATE2_X+3.5)/res, (GATE3_X + 3.5)/res, (GATE4_X+3.5)/res])
     y = np.array([(GATE1_Y+3.5)/res, (GATE2_Y+3.5)/res, (GATE3_Y+3.5)/res, (GATE4_Y+3.5)/res])
     plt.plot(x, y, 'r*', label='Gates')
@@ -194,11 +198,10 @@ class path_planning():
         self.gate_order = gate_order
         
         # calculate coordinates of gates
-
         self.gate_coord = [
             np.array([round((GATE1_X+3.5)/res), round((GATE1_Y+3.5)/res)]),   # gate_1
             np.array([round((GATE2_X+3.5)/res), round((GATE2_Y+3.5)/res)]),   # gate_2
-            np.array([round((GATE3_X+3.5)/res), round((GATE3_Y+3.5)/res)]),      # gate_3
+            np.array([round((GATE3_X+3.5)/res), round((GATE3_Y+3.5)/res)]),   # gate_3
             np.array([round((GATE4_X+3.5)/res), round((GATE4_Y+3.5)/res)])    # gate_4
         ]
 
@@ -232,6 +235,7 @@ class path_planning():
                 start = self.gate_coord[self.gate_order[i-1] - 1] # set start of path segment
                 end = self.gate_coord[self.gate_order[i] - 1] # set end of path segment
 
+            # loop around the gate if required to path through same gate twice in a row
             if np.array_equal(start, end):
                 path = self.same_gate(start, path, M_updated, M, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1])
 
@@ -243,13 +247,8 @@ class path_planning():
             if i!=len(self.gate_order):
                 M_updated = update_map(M, path, self.gate_order[i], self.gate_coord[self.gate_order[i] - 1]) # update map with gate closed
 
-            path_smooth = self.sample_path(path) # smooth the path
-
-            #x = path[:, 0] # get x
-            #y = path[:, 1] # get y
-            #altitude = 1 # append constant z of 1m
-            #z = np.ones_like(x) * (altitude+3.5)/self.res # get z           
-            #path_smooth = np.vstack([x, y, z]).T # stack x, y, z
+            # make path smoother
+            path_smooth = self.sample_path(path) 
             
             path_segments.append(path_smooth) # store the entire path
 
@@ -257,26 +256,23 @@ class path_planning():
         
         return full_path, path_segments
     
-    # find path for path where start and end are the same gates
+    # find path for path where start and end are the same gates (go around the gate)
     def same_gate(self, start, path, M_updated, M, gate_num, gate_coord):
-
         # set the end point
         if gate_num == 1 or gate_num == 3:
             x = gate_coord[0] + (2*(path[-2][0]-gate_coord[0]))
             end = np.array([int(x), int(gate_coord[1])])
-
         else:
             y = gate_coord[1] + (2*(path[-2][1]-gate_coord[1]))
             end = np.array([int(gate_coord[0]), int(y)])
-
         
-        path1 = self.A_star(start, end, M_updated) # find the first path
-        path2 = self.A_star(end, start, M) # find the second path   
-        path = np.concatenate((path1, path2), axis=0) # concatenate the two paths
+        path1 = self.A_star(start, end, M_updated) # find path from centre of gate to one cell behind the gate closure point
+        path2 = self.A_star(end, start, M) # find path from one cell behind the gate closure point to the centre of the gate
+        path = np.concatenate((path1, path2), axis=0) # concatenate the two paths to get the full path around the gate
 
         return path
         
-        
+    # A* algorithm
     def A_star(self, path_start, path_end, M):
     
         enable_diagonal = True # enable diagonal movement
@@ -312,12 +308,13 @@ class path_planning():
                 f = g + h # calculate total cost
                 in_open, idx = self.is_in_list(openlist, nx, ny) # check if neighbor is in openlist
                 if in_open:
-                    if g < openlist[idx][2]:  # update if better cost to come
+                    # update if better cost to come
+                    if g < openlist[idx][2]:  
                         openlist[idx][2] = g
                         openlist[idx][4] = f
                         openlist[idx][5:7] = [current[0], current[1]]
                 else:
-                    openlist.append([nx, ny, g, h, f, current[0], current[1]])
+                    openlist.append([nx, ny, g, h, f, current[0], current[1]]) # add neighbors to openlist
         return path
     
     # calculate heuristic distance
@@ -329,7 +326,7 @@ class path_planning():
             # if diagonal is not allowedd, use Manhattan distance
             return abs(x1 - x2) + abs(y1 - y2)
 
-    # check if two locations are the same
+    # check if two locations are the same (check if goal is reached)
     def is_same_location(self, x1, y1, x2, y2):
         return int(x1) == int(x2) and int(y1) == int(y2)
 
@@ -344,10 +341,12 @@ class path_planning():
     # get the neighbors of a node and their costs
     def cost_neighbors(self, M, g_parent, size_x, size_y, x, y, closelist, diagonal):
         
-        directions = [(1,0), (-1,0), (0,1), (0,-1)] # all allowed steps
+        # all allowed steps
+        directions = [(1,0), (-1,0), (0,1), (0,-1)] 
         
+        # add diagonal steps if allowed
         if diagonal:
-            directions += [(1,1), (1,-1), (-1,1), (-1,-1)] # add diagonal steps if allowed
+            directions += [(1,1), (1,-1), (-1,1), (-1,-1)] 
         
         # initialize
         g_list = []
@@ -395,9 +394,8 @@ class path_planning():
         _, idx = np.unique(path, axis=0, return_index=True)
         path = path[np.sort(idx)]
 
-        
         # number of points to sample
-        num_points = 500
+        num_points = 500 # found though experimentation
         
         # get x and y
         x = path[:, 0]

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements an autonomous drone racing system that uses gate and obstacle positions from getting_started.yaml to plan and execute a collision-free trajectory. A 2D occupancy grid at z = 1.0m is constructed, with obstacles modeled as 0.5m exclusion zones and gates as straw-shaped aligned regions. An A* algorithm plans a path through the gates using Euclidean distance and 0.1m grid resolution. The path is smoothed with B-spline interpolation and converted into a sequence of full-state waypoints. The drone follows the planned path using precise control commands, and uses simple takeoff and landing commands to start and end the flight with the CrazyFlie. A feed-forward controller monitors position feedback via adjusting motion when deviation is detected. The system was validated in both simulation and real-world trials, demonstrating stable and accurate gate traversal.
+This project implements an autonomous drone racing system that uses gate and obstacle positions from getting_started.yaml to plan and execute a collision-free trajectory. A 2D occupancy grid at z = 1.0m is constructed, with obstacles modeled as 0.5m exclusion zones, accounting for location uncertainty, and gates as straw-shaped aligned regions. An A* algorithm plans a path through the gates using Euclidean distance as the heuristic and 0.1m grid resolution. The path is smoothed with B-spline interpolation and polynomial fit and converted into a sequence of full-state waypoints. The drone follows the planned path using precise control commands, and uses simple takeoff and landing commands to start and end the flight with the CrazyFlie. A feed-forward controller monitors position feedback via adjusting motion when deviation is detected. The system was validated in both simulation and real-world trials, demonstrating stable and accurate gate traversal.
 
 ## Project Structure
 
@@ -34,7 +34,7 @@ Represents gates using two rectangular keep-out zones aligned in the direction o
 Ensures proper alignment during gate traversal to avoid clipping.
 
 #### Trajectory Smoothing
-Applies B-spline interpolation to convert the discrete A* path into a smooth, flyable trajectory.
+Applies B-spline interpolation and polynomial fit to convert the discrete A* path into a smooth, flyable trajectory.
 Outputs a sequence of waypoints for control execution.
 
 #### Control Execution
