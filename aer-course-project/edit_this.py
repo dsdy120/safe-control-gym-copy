@@ -164,7 +164,7 @@ class Controller():
         path, segments = ecu.path_planning(res, gate_order, obstacles_enabled).run_Astar()
         
         M = ecu.map_generation(res, obstacles_enabled)
-        #ecu.plot_map(M, res, path)
+        ecu.plot_map(M, res, path)
 
         # initial waypoint
         """if use_firmware:
